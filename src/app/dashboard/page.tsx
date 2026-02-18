@@ -20,6 +20,7 @@ import {
   Phone,
   ArrowRight,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -42,10 +43,13 @@ interface DashboardStats {
   }[];
 }
 
-const channelConfig: Record<string, { icon: typeof MessageSquare; color: string; label: string }> = {
-  whatsapp: { icon: MessageSquare, color: "text-emerald-500", label: "WhatsApp" },
-  email: { icon: Mail, color: "text-blue-500", label: "Email" },
-  sms: { icon: Phone, color: "text-amber-500", label: "SMS" },
+const channelConfig: Record<
+  string,
+  { icon: typeof MessageSquare; color: string; bg: string; label: string }
+> = {
+  whatsapp: { icon: MessageSquare, color: "text-emerald-600", bg: "bg-emerald-50", label: "WhatsApp" },
+  email: { icon: Mail, color: "text-blue-600", bg: "bg-blue-50", label: "Email" },
+  sms: { icon: Phone, color: "text-amber-600", bg: "bg-amber-50", label: "SMS" },
 };
 
 const eventLabels: Record<string, string> = {
@@ -88,10 +92,15 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          <h2
+            className="page-title text-2xl font-bold tracking-tight text-[#1a2332]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Overview
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">Loading dashboard...</p>
         </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="h-24" />
@@ -104,7 +113,7 @@ export default function DashboardPage() {
 
   if (!stats) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
+      <div className="flex h-64 items-center justify-center text-slate-500">
         Failed to load dashboard data.
       </div>
     );
@@ -115,38 +124,42 @@ export default function DashboardPage() {
       label: "Total Leads",
       value: stats.totalLeads,
       icon: Users,
-      accent: "text-blue-500",
-      bg: "bg-blue-500/10",
+      accent: "#5b8def",
+      iconBg: "bg-blue-50",
+      iconColor: "text-[#5b8def]",
     },
     {
       label: "Active Campaigns",
       value: stats.activeCampaigns,
       icon: Megaphone,
-      accent: "text-emerald-500",
-      bg: "bg-emerald-500/10",
+      accent: "#10b981",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
     },
     {
       label: "Touches Sent",
       value: stats.totalTouchesSent,
       icon: Send,
-      accent: "text-violet-500",
-      bg: "bg-violet-500/10",
+      accent: "#8b5cf6",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
     },
     {
       label: "Opt-Outs",
       value: stats.optedOut,
       icon: UserX,
-      accent: "text-rose-500",
-      bg: "bg-rose-500/10",
+      accent: "#ef4444",
+      iconBg: "bg-rose-50",
+      iconColor: "text-rose-600",
     },
   ];
 
   const { funnel } = stats;
   const funnelSteps = [
-    { label: "Sent", value: funnel.sent, color: "bg-blue-500" },
-    { label: "Delivered", value: funnel.delivered, color: "bg-emerald-500" },
-    { label: "Opened", value: funnel.opened, color: "bg-amber-500" },
-    { label: "Replied", value: funnel.replied, color: "bg-violet-500" },
+    { label: "Sent", value: funnel.sent, from: "#5b8def", to: "#3b6fd6" },
+    { label: "Delivered", value: funnel.delivered, from: "#10b981", to: "#059669" },
+    { label: "Opened", value: funnel.opened, from: "#f59e0b", to: "#d97706" },
+    { label: "Replied", value: funnel.replied, from: "#8b5cf6", to: "#7c3aed" },
   ];
 
   const maxFunnel = Math.max(funnel.sent, 1);
@@ -154,26 +167,48 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="animate-fade-up">
+        <h2
+          className="page-title text-2xl font-bold tracking-tight text-[#1a2332]"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Overview
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
           FAC Reactivation Engine — real-time campaign performance
         </p>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <Card key={card.label}>
-            <CardContent className="flex items-center gap-4">
-              <div className={cn("flex size-10 items-center justify-center rounded-lg", card.bg)}>
-                <card.icon className={cn("size-5", card.accent)} />
+      <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+        {statCards.map((card, i) => (
+          <Card
+            key={card.label}
+            className="stat-card animate-fade-up border-0 shadow-sm"
+            style={
+              {
+                "--stat-accent": card.accent,
+                animationDelay: `${i * 80}ms`,
+              } as React.CSSProperties
+            }
+          >
+            <CardContent className="flex items-center gap-4 py-5">
+              <div
+                className={cn(
+                  "flex size-12 items-center justify-center rounded-xl",
+                  card.iconBg,
+                )}
+              >
+                <card.icon className={cn("size-6", card.iconColor)} />
               </div>
               <div>
-                <p className="text-2xl font-bold tabular-nums tracking-tight">
+                <p
+                  className="text-2xl font-bold tabular-nums tracking-tight text-[#1a2332]"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
                   {card.value.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground">{card.label}</p>
+                <p className="text-[13px] text-slate-500">{card.label}</p>
               </div>
             </CardContent>
           </Card>
@@ -181,16 +216,27 @@ export default function DashboardPage() {
       </div>
 
       {/* Funnel + Activity */}
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-5 lg:grid-cols-5">
         {/* Funnel */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-base">Delivery Funnel</CardTitle>
-            <CardDescription>
+        <Card
+          className="animate-fade-up border-0 shadow-sm lg:col-span-3"
+          style={{ animationDelay: "320ms" }}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="size-4 text-[#5b8def]" />
+              <CardTitle
+                className="text-[15px] font-bold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Delivery Funnel
+              </CardTitle>
+            </div>
+            <CardDescription className="text-[13px]">
               Touch progression across all campaigns
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4 pt-2">
             {funnelSteps.map((step, i) => {
               const pct = maxFunnel > 0 ? (step.value / maxFunnel) * 100 : 0;
               const prevValue = i > 0 ? funnelSteps[i - 1].value : null;
@@ -200,25 +246,35 @@ export default function DashboardPage() {
                   : null;
 
               return (
-                <div key={step.label} className="space-y-1.5">
+                <div key={step.label} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{step.label}</span>
+                      <span className="font-semibold text-[#1a2332]">{step.label}</span>
                       {convRate && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 text-xs text-slate-400">
                           <ArrowRight className="size-3" />
                           {convRate}%
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-sm font-semibold tabular-nums">
+                    <span
+                      className="text-sm font-semibold tabular-nums text-[#1a2332]"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       {step.value.toLocaleString()}
                     </span>
                   </div>
-                  <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className={cn("h-full rounded-full transition-all duration-700", step.color)}
-                      style={{ width: `${Math.max(pct, 1)}%` }}
+                      className="funnel-bar h-full rounded-full"
+                      style={
+                        {
+                          width: `${Math.max(pct, 2)}%`,
+                          "--bar-from": step.from,
+                          "--bar-to": step.to,
+                          animationDelay: `${400 + i * 150}ms`,
+                        } as React.CSSProperties
+                      }
                     />
                   </div>
                 </div>
@@ -228,19 +284,27 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        <Card
+          className="animate-fade-up border-0 shadow-sm lg:col-span-2"
+          style={{ animationDelay: "400ms" }}
+        >
+          <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <Activity className="size-4 text-muted-foreground" />
-              <CardTitle className="text-base">Recent Activity</CardTitle>
+              <Activity className="size-4 text-[#5b8def]" />
+              <CardTitle
+                className="text-[15px] font-bold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Recent Activity
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             {stats.activity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent events</p>
+              <p className="py-8 text-center text-sm text-slate-400">No recent events</p>
             ) : (
-              <div className="space-y-3">
-                {stats.activity.map((event) => {
+              <div className="space-y-1">
+                {stats.activity.map((event, i) => {
                   const ch = channelConfig[event.channel] ?? channelConfig.email;
                   const ChannelIcon = ch.icon;
                   const firstName = event.leadName.split(" ")[0];
@@ -248,19 +312,27 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={event.id}
-                      className="flex items-center gap-3 text-sm"
+                      className="animate-slide-left flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                      style={{ animationDelay: `${500 + i * 60}ms` }}
                     >
-                      <ChannelIcon className={cn("size-4 shrink-0", ch.color)} />
+                      <div
+                        className={cn(
+                          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                          ch.bg,
+                        )}
+                      >
+                        <ChannelIcon className={cn("size-4", ch.color)} />
+                      </div>
                       <div className="flex-1 truncate">
-                        <span className="font-medium">{firstName}</span>
-                        <span className="text-muted-foreground">
+                        <span className="font-semibold text-[#1a2332]">{firstName}</span>
+                        <span className="text-slate-500">
                           {" "}{eventLabels[event.eventType] ?? event.eventType}
                         </span>
                       </div>
-                      <Badge variant="outline" className="shrink-0 text-xs">
-                        {ch.label}
-                      </Badge>
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      <span
+                        className="shrink-0 text-xs text-slate-400 tabular-nums"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
                         {timeAgo(event.createdAt)}
                       </span>
                     </div>

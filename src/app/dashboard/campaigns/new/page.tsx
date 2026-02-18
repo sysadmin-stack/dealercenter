@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Loader2, Eye } from "lucide-react";
+import { ArrowLeft, Loader2, Eye, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const SEGMENTS = ["HOT", "WARM", "COLD", "FROZEN"] as const;
@@ -22,6 +22,13 @@ const CHANNELS = [
   { value: "email", label: "Email" },
   { value: "sms", label: "SMS" },
 ] as const;
+
+const segmentAccent: Record<string, string> = {
+  HOT: "border-rose-400 bg-rose-50 text-rose-700",
+  WARM: "border-amber-400 bg-amber-50 text-amber-700",
+  COLD: "border-blue-400 bg-blue-50 text-blue-700",
+  FROZEN: "border-slate-300 bg-slate-100 text-slate-600",
+};
 
 interface PreviewResult {
   eligible: number;
@@ -57,7 +64,6 @@ export default function NewCampaignPage() {
     if (segments.length === 0 || channels.length === 0) return;
     setPreviewing(true);
 
-    // First create as draft, then preview
     try {
       const createRes = await fetch("/api/campaigns", {
         method: "POST",
@@ -75,7 +81,6 @@ export default function NewCampaignPage() {
       const data = await previewRes.json();
       setPreview(data);
 
-      // Clean up: delete the draft if it was just for preview
       if (!name) {
         await fetch(`/api/campaigns/${campaign.id}`, { method: "DELETE" });
       }
@@ -116,48 +121,65 @@ export default function NewCampaignPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="animate-fade-up flex items-center gap-3">
         <Link href="/dashboard/campaigns">
-          <Button variant="ghost" size="icon-sm">
+          <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-[#1a2332]">
             <ArrowLeft className="size-4" />
           </Button>
         </Link>
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">New Campaign</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2
+            className="page-title text-2xl font-bold tracking-tight text-[#1a2332]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            New Campaign
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
             Configure segments and channels
           </p>
         </div>
       </div>
 
-      <Card>
+      <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "80ms" }}>
         <CardHeader>
-          <CardTitle className="text-base">Campaign Details</CardTitle>
+          <CardTitle
+            className="text-[15px] font-bold"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Campaign Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Name</label>
+            <label className="mb-1.5 block text-[13px] font-semibold text-[#1a2332]">Name</label>
             <Input
               placeholder="e.g. Q1 2026 Hot Lead Reactivation"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="border-slate-200 bg-white"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Description</label>
+            <label className="mb-1.5 block text-[13px] font-semibold text-[#1a2332]">Description</label>
             <Input
               placeholder="Optional description..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="border-slate-200 bg-white"
             />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "160ms" }}>
         <CardHeader>
-          <CardTitle className="text-base">Target Segments</CardTitle>
-          <CardDescription>Select which lead segments to include</CardDescription>
+          <CardTitle
+            className="text-[15px] font-bold"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Target Segments
+          </CardTitle>
+          <CardDescription className="text-[13px]">Select which lead segments to include</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
@@ -166,10 +188,10 @@ export default function NewCampaignPage() {
                 key={s}
                 onClick={() => toggleSegment(s)}
                 className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-lg border-2 px-4 py-2.5 text-sm font-bold transition-all duration-200",
                   segments.includes(s)
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border hover:bg-accent",
+                    ? segmentAccent[s]
+                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50",
                 )}
               >
                 {s}
@@ -179,10 +201,15 @@ export default function NewCampaignPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "240ms" }}>
         <CardHeader>
-          <CardTitle className="text-base">Channels</CardTitle>
-          <CardDescription>Select delivery channels</CardDescription>
+          <CardTitle
+            className="text-[15px] font-bold"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Channels
+          </CardTitle>
+          <CardDescription className="text-[13px]">Select delivery channels</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
@@ -191,10 +218,10 @@ export default function NewCampaignPage() {
                 key={c.value}
                 onClick={() => toggleChannel(c.value)}
                 className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-lg border-2 px-4 py-2.5 text-sm font-bold transition-all duration-200",
                   channels.includes(c.value)
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border hover:bg-accent",
+                    ? "border-[#5b8def] bg-blue-50 text-[#3b6fd6]"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50",
                 )}
               >
                 {c.label}
@@ -206,16 +233,31 @@ export default function NewCampaignPage() {
 
       {/* Preview */}
       {preview && (
-        <Card>
+        <Card className="animate-fade-up border-0 bg-gradient-to-br from-blue-50 to-white shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Preview</CardTitle>
+            <CardTitle
+              className="flex items-center gap-2 text-[15px] font-bold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              <Sparkles className="size-4 text-[#5b8def]" />
+              Preview
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{preview.eligible.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">eligible leads</p>
+            <p
+              className="text-3xl font-bold text-[#1a2332]"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {preview.eligible.toLocaleString()}
+            </p>
+            <p className="text-sm text-slate-500">eligible leads</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(preview.bySegment || {}).map(([seg, count]) => (
-                <Badge key={seg} variant="outline">
+                <Badge
+                  key={seg}
+                  variant="outline"
+                  className="border-slate-200 text-xs"
+                >
                   {seg}: {count}
                 </Badge>
               ))}
@@ -224,18 +266,25 @@ export default function NewCampaignPage() {
         </Card>
       )}
 
-      {error && <p className="text-sm text-rose-600">{error}</p>}
+      {error && (
+        <p className="text-sm font-medium text-rose-600">{error}</p>
+      )}
 
-      <div className="flex gap-3">
+      <div className="animate-fade-up flex gap-3" style={{ animationDelay: "320ms" }}>
         <Button
           variant="outline"
           onClick={handlePreview}
           disabled={segments.length === 0 || channels.length === 0 || previewing}
+          className="border-slate-200"
         >
           {previewing ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
           Preview Leads
         </Button>
-        <Button onClick={handleCreate} disabled={saving}>
+        <Button
+          onClick={handleCreate}
+          disabled={saving}
+          className="bg-[#5b8def] text-white hover:bg-[#4a7cd6]"
+        >
           {saving && <Loader2 className="size-4 animate-spin" />}
           Create Campaign
         </Button>

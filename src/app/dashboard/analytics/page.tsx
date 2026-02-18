@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, BarChart3, PieChart, FlaskConical } from "lucide-react";
 
 interface AnalyticsData {
   channelStats: Record<string, Record<string, number>>;
@@ -26,17 +26,17 @@ const channelLabels: Record<string, string> = {
   sms: "SMS",
 };
 
-const channelColors: Record<string, string> = {
-  whatsapp: "bg-emerald-500",
-  email: "bg-blue-500",
-  sms: "bg-amber-500",
+const channelColors: Record<string, { dot: string; bar: string; bg: string }> = {
+  whatsapp: { dot: "bg-emerald-500", bar: "from-emerald-500 to-emerald-600", bg: "bg-emerald-50" },
+  email: { dot: "bg-[#5b8def]", bar: "from-[#5b8def] to-[#3b6fd6]", bg: "bg-blue-50" },
+  sms: { dot: "bg-amber-500", bar: "from-amber-500 to-amber-600", bg: "bg-amber-50" },
 };
 
-const segmentColors: Record<string, string> = {
-  HOT: "bg-rose-500",
-  WARM: "bg-amber-500",
-  COLD: "bg-blue-500",
-  FROZEN: "bg-slate-400",
+const segmentStyles: Record<string, { bar: string; dot: string }> = {
+  HOT: { bar: "from-rose-500 to-rose-600", dot: "bg-rose-500" },
+  WARM: { bar: "from-amber-500 to-amber-600", dot: "bg-amber-500" },
+  COLD: { bar: "from-blue-500 to-blue-600", dot: "bg-blue-500" },
+  FROZEN: { bar: "from-slate-400 to-slate-500", dot: "bg-slate-400" },
 };
 
 function pct(value: number, total: number): string {
@@ -61,9 +61,14 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Analytics</h2>
+        <h2
+          className="page-title text-2xl font-bold tracking-tight text-[#1a2332]"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Analytics
+        </h2>
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <Loader2 className="size-6 animate-spin text-slate-400" />
         </div>
       </div>
     );
@@ -71,7 +76,7 @@ export default function AnalyticsPage() {
 
   if (!data) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
+      <div className="flex h-64 items-center justify-center text-slate-500">
         Failed to load analytics.
       </div>
     );
@@ -82,24 +87,40 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Analytics</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="animate-fade-up">
+        <h2
+          className="page-title text-2xl font-bold tracking-tight text-[#1a2332]"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Analytics
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
           Campaign performance and conversion metrics
         </p>
       </div>
 
       {/* Channel Performance */}
-      <Card>
+      <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "80ms" }}>
         <CardHeader>
-          <CardTitle className="text-base">Channel Performance</CardTitle>
-          <CardDescription>Conversion rates per delivery channel</CardDescription>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="size-4 text-[#5b8def]" />
+            <CardTitle
+              className="text-[15px] font-bold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Channel Performance
+            </CardTitle>
+          </div>
+          <CardDescription className="text-[13px]">
+            Conversion rates per delivery channel
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             {["whatsapp", "email", "sms"].map((channel) => {
               const stats = data.channelStats[channel] || {};
               const total = data.channelTotals[channel] || 0;
+              const cc = channelColors[channel];
               const sent =
                 (stats.sent || 0) +
                 (stats.delivered || 0) +
@@ -119,18 +140,25 @@ export default function AnalyticsPage() {
               const bounced = stats.bounced || 0;
 
               return (
-                <div key={channel} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("size-3 rounded-full", channelColors[channel])} />
-                    <span className="text-sm font-semibold">
-                      {channelLabels[channel]}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {total} total
-                    </span>
+                <div key={channel} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("flex size-9 items-center justify-center rounded-lg", cc.bg)}>
+                      <div className={cn("size-3 rounded-full", cc.dot)} />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-[#1a2332]">
+                        {channelLabels[channel]}
+                      </span>
+                      <p
+                        className="text-xs text-slate-400"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        {total} total
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-3 text-sm">
                     <MetricRow label="Sent" value={sent} total={total} />
                     <MetricRow label="Delivered" value={delivered} total={sent} />
                     <MetricRow label="Opened" value={opened} total={delivered} />
@@ -146,30 +174,48 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         {/* Segment Distribution */}
-        <Card>
+        <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "160ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">Lead Segments</CardTitle>
-            <CardDescription>Distribution across segments</CardDescription>
+            <div className="flex items-center gap-2">
+              <PieChart className="size-4 text-[#5b8def]" />
+              <CardTitle
+                className="text-[15px] font-bold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Lead Segments
+              </CardTitle>
+            </div>
+            <CardDescription className="text-[13px]">Distribution across segments</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {["HOT", "WARM", "COLD", "FROZEN"].map((seg) => {
+          <CardContent className="space-y-4">
+            {["HOT", "WARM", "COLD", "FROZEN"].map((seg, i) => {
               const count = data.segments[seg] || 0;
               const width = totalSegments > 0 ? (count / totalSegments) * 100 : 0;
+              const ss = segmentStyles[seg];
 
               return (
-                <div key={seg} className="space-y-1">
+                <div key={seg} className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium">{seg}</span>
-                    <span className="tabular-nums text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("size-2 rounded-full", ss.dot)} />
+                      <span className="font-semibold text-[#1a2332]">{seg}</span>
+                    </div>
+                    <span
+                      className="text-slate-500 tabular-nums"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       {count} ({pct(count, totalSegments)})
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className={cn("h-full rounded-full", segmentColors[seg])}
-                      style={{ width: `${Math.max(width, 1)}%` }}
+                      className={cn("funnel-bar h-full rounded-full bg-gradient-to-r", ss.bar)}
+                      style={{
+                        width: `${Math.max(width, 1)}%`,
+                        animationDelay: `${300 + i * 100}ms`,
+                      }}
                     />
                   </div>
                 </div>
@@ -179,48 +225,58 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* A/B Variant Performance */}
-        <Card>
+        <Card className="animate-fade-up border-0 shadow-sm" style={{ animationDelay: "240ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">A/B Testing</CardTitle>
-            <CardDescription>Variant distribution and AI vs fallback</CardDescription>
+            <div className="flex items-center gap-2">
+              <FlaskConical className="size-4 text-[#5b8def]" />
+              <CardTitle
+                className="text-[15px] font-bold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                A/B Testing
+              </CardTitle>
+            </div>
+            <CardDescription className="text-[13px]">
+              Variant distribution and AI vs fallback
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             <div>
-              <p className="mb-2 text-sm font-medium">Variant Split</p>
+              <p className="mb-3 text-[13px] font-semibold text-[#1a2332]">Variant Split</p>
               <div className="flex gap-3">
                 <VariantCard
                   label="Variant A"
                   subtitle="Direct & action-oriented"
                   count={data.variantCounts.A}
                   total={data.variantCounts.A + data.variantCounts.B}
-                  color="bg-blue-500"
+                  color="#5b8def"
                 />
                 <VariantCard
                   label="Variant B"
                   subtitle="Casual & relationship-focused"
                   count={data.variantCounts.B}
                   total={data.variantCounts.A + data.variantCounts.B}
-                  color="bg-violet-500"
+                  color="#8b5cf6"
                 />
               </div>
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium">Message Source</p>
+              <p className="mb-3 text-[13px] font-semibold text-[#1a2332]">Message Source</p>
               <div className="flex gap-3">
                 <VariantCard
                   label="AI Generated"
                   subtitle="Claude API"
                   count={data.variantCounts.ai}
                   total={data.variantCounts.ai + data.variantCounts.fallback}
-                  color="bg-emerald-500"
+                  color="#10b981"
                 />
                 <VariantCard
                   label="Fallback"
                   subtitle="Template-based"
                   count={data.variantCounts.fallback}
                   total={data.variantCounts.ai + data.variantCounts.fallback}
-                  color="bg-amber-500"
+                  color="#f59e0b"
                 />
               </div>
             </div>
@@ -246,18 +302,24 @@ function MetricRow({
 
   return (
     <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-slate-500">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="font-mono tabular-nums">{value}</span>
-        <Badge
-          variant="outline"
+        <span
+          className="font-semibold tabular-nums text-[#1a2332]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {value}
+        </span>
+        <span
           className={cn(
-            "text-[10px] tabular-nums",
-            isNegative && "text-rose-500",
+            "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+            isNegative
+              ? "bg-rose-50 text-rose-600"
+              : "bg-slate-100 text-slate-600",
           )}
         >
           {percentage}%
-        </Badge>
+        </span>
       </div>
     </div>
   );
@@ -279,15 +341,21 @@ function VariantCard({
   const percentage = total > 0 ? ((count / total) * 100).toFixed(0) : "0";
 
   return (
-    <div className="flex-1 rounded-lg border p-3">
+    <div className="flex-1 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center gap-2">
-        <div className={cn("size-2 rounded-full", color)} />
-        <span className="text-sm font-medium">{label}</span>
+        <div
+          className="size-2.5 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-sm font-bold text-[#1a2332]">{label}</span>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      <p className="mt-2 text-lg font-bold tabular-nums">
+      <p className="mt-1 text-[12px] text-slate-400">{subtitle}</p>
+      <p
+        className="mt-3 text-2xl font-bold tabular-nums text-[#1a2332]"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
         {count}
-        <span className="ml-1 text-xs font-normal text-muted-foreground">
+        <span className="ml-1 text-xs font-normal text-slate-400">
           ({percentage}%)
         </span>
       </p>
