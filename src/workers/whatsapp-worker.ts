@@ -1,6 +1,6 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
-import { db, getWindowDelay, TokenBucket } from "./utils";
+import { db, getWindowDelay, TokenBucket, dncPreFlight } from "./utils";
 import { sendWhatsApp } from "../lib/clients/waha";
 import { generateMessage } from "../lib/services/copywriter";
 
@@ -33,23 +33,28 @@ async function processWhatsApp(job: Job<TouchJobData>) {
     return; // Already processed or cancelled
   }
 
-  // 3. Get lead
-  const lead = await db.lead.findUnique({ where: { id: leadId } });
-  if (!lead || !lead.phone || lead.optedOut) {
+  // 3. DNC pre-flight check
+  const dnc = await dncPreFlight(leadId, "whatsapp");
+  if (!dnc.allowed) {
     await db.touch.update({
       where: { id: touchId },
       data: { status: "failed" },
     });
+    console.log(`[WA] Blocked by DNC: ${dnc.reason} for lead ${leadId}`);
     return;
   }
 
-  // 4. Rate limit
+  // 4. Get lead
+  const lead = await db.lead.findUnique({ where: { id: leadId } });
+  if (!lead || !lead.phone) return;
+
+  // 5. Rate limit
   await rateLimiter.take();
 
-  // 5. Generate message (AI with fallback)
+  // 6. Generate message (AI with fallback)
   const { text, variant, source } = await generateMessage(lead, "whatsapp", templateType);
 
-  // 6. Send via WAHA
+  // 7. Send via WAHA
   try {
     await sendWhatsApp(lead.phone, text);
 

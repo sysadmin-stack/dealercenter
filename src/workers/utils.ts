@@ -35,6 +35,30 @@ export function getWindowDelay(startHour: number, endHour: number): number {
 }
 
 /**
+ * DNC pre-flight check. Returns true if safe to send.
+ */
+export async function dncPreFlight(
+  leadId: string,
+  channel: "whatsapp" | "email" | "sms",
+): Promise<{ allowed: boolean; reason?: string }> {
+  const lead = await db.lead.findUnique({
+    where: { id: leadId },
+    select: { optedOut: true, phone: true, email: true },
+  });
+
+  if (!lead) return { allowed: false, reason: "lead_not_found" };
+  if (lead.optedOut) return { allowed: false, reason: "opted_out" };
+
+  if (channel === "email" && !lead.email) return { allowed: false, reason: "no_email" };
+  if ((channel === "whatsapp" || channel === "sms") && !lead.phone) return { allowed: false, reason: "no_phone" };
+
+  const dncEntry = await db.dncList.findFirst({ where: { leadId } });
+  if (dncEntry) return { allowed: false, reason: "dnc_listed" };
+
+  return { allowed: true };
+}
+
+/**
  * Simple in-memory token bucket rate limiter.
  */
 export class TokenBucket {

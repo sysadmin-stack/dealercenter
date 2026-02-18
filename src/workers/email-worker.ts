@@ -1,7 +1,7 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
 import { Resend } from "resend";
-import { db, TokenBucket } from "./utils";
+import { db, TokenBucket, dncPreFlight } from "./utils";
 import { generateMessage } from "../lib/services/copywriter";
 
 interface TouchJobData {
@@ -30,23 +30,28 @@ async function processEmail(job: Job<TouchJobData>) {
   const touch = await db.touch.findUnique({ where: { id: touchId } });
   if (!touch || touch.status !== "pending") return;
 
-  // 2. Get lead
-  const lead = await db.lead.findUnique({ where: { id: leadId } });
-  if (!lead || !lead.email || lead.optedOut) {
+  // 2. DNC pre-flight check
+  const dnc = await dncPreFlight(leadId, "email");
+  if (!dnc.allowed) {
     await db.touch.update({
       where: { id: touchId },
       data: { status: "failed" },
     });
+    console.log(`[Email] Blocked by DNC: ${dnc.reason} for lead ${leadId}`);
     return;
   }
 
-  // 3. Rate limit
+  // 3. Get lead
+  const lead = await db.lead.findUnique({ where: { id: leadId } });
+  if (!lead || !lead.email) return;
+
+  // 4. Rate limit
   await rateLimiter.take();
 
-  // 4. Generate message (AI with fallback)
+  // 5. Generate message (AI with fallback)
   const { subject, text, html, variant, source } = await generateMessage(lead, "email", templateType);
 
-  // 5. Send via Resend
+  // 6. Send via Resend
   try {
     await getResend().emails.send({
       from: fromEmail,

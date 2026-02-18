@@ -1,7 +1,7 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
 import Twilio from "twilio";
-import { db, getWindowDelay, TokenBucket } from "./utils";
+import { db, getWindowDelay, TokenBucket, dncPreFlight } from "./utils";
 import { generateMessage } from "../lib/services/copywriter";
 
 interface TouchJobData {
@@ -42,23 +42,28 @@ async function processSms(job: Job<TouchJobData>) {
   const touch = await db.touch.findUnique({ where: { id: touchId } });
   if (!touch || touch.status !== "pending") return;
 
-  // 3. Get lead
-  const lead = await db.lead.findUnique({ where: { id: leadId } });
-  if (!lead || !lead.phone || lead.optedOut) {
+  // 3. DNC pre-flight check
+  const dnc = await dncPreFlight(leadId, "sms");
+  if (!dnc.allowed) {
     await db.touch.update({
       where: { id: touchId },
       data: { status: "failed" },
     });
+    console.log(`[SMS] Blocked by DNC: ${dnc.reason} for lead ${leadId}`);
     return;
   }
 
-  // 4. Rate limit
+  // 4. Get lead
+  const lead = await db.lead.findUnique({ where: { id: leadId } });
+  if (!lead || !lead.phone) return;
+
+  // 5. Rate limit
   await rateLimiter.take();
 
-  // 5. Generate message (AI with fallback)
+  // 6. Generate message (AI with fallback)
   const { text, variant, source } = await generateMessage(lead, "sms", templateType);
 
-  // 6. Send via Twilio
+  // 7. Send via Twilio
   try {
     await getTwilio().messages.create({
       to: lead.phone,
