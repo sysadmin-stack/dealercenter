@@ -26,6 +26,19 @@ services:
       timeout: 5s
       retries: 5
 
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-dealercenter}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dealercenter}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migrate
+
   app:
     build:
       context: .

@@ -13,6 +13,15 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+# Migration runner (has full node_modules for prisma CLI)
+FROM base AS migrator
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/src/generated ./src/generated
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
