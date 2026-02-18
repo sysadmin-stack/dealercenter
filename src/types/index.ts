@@ -1,13 +1,26 @@
-export type LeadSegment = "HOT" | "WARM" | "COLD" | "FROZEN";
+// Re-export Prisma generated types
+export type {
+  Lead,
+  Campaign,
+  Touch,
+  TouchEvent,
+  Conversation,
+  DncList,
+  AuditLog,
+  User,
+} from "@/generated/prisma/client";
 
-export type CampaignChannel = "whatsapp" | "email" | "sms";
+// Re-export Prisma enums
+export {
+  Segment,
+  Language,
+  Channel,
+  TouchStatus,
+  CampaignStatus,
+  ConversationStatus,
+} from "@/generated/prisma/client";
 
-export type CampaignStatus = "draft" | "active" | "paused" | "completed";
-
-export type DispatchStatus = "pending" | "sent" | "delivered" | "read" | "replied" | "failed" | "bounced";
-
-export type ConversationStatus = "ai" | "human" | "closed";
-
+// App types
 export interface HealthCheckResponse {
   status: "ok" | "degraded";
   timestamp: string;
@@ -16,4 +29,12 @@ export interface HealthCheckResponse {
     database?: "connected" | "disconnected" | "error";
   };
   error?: string;
+}
+
+export interface ImportResult {
+  total: number;
+  imported: number;
+  skipped: number;
+  dnc: number;
+  errors: string[];
 }

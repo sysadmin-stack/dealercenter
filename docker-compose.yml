@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: dealercenter
+      POSTGRES_PASSWORD: dealercenter_dev
+      POSTGRES_DB: dealercenter
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
@@ -19,8 +31,10 @@ services:
     env_file:
       - .env.local
     depends_on:
+      - postgres
       - redis
     restart: unless-stopped
 
 volumes:
+  postgres-data:
   redis-data:
