@@ -3,6 +3,7 @@ import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { recordEvent, findTouchByPhone } from "@/lib/services/tracking";
 import { handleIncomingMessage } from "@/lib/services/conversation-trigger";
+import { processConversation } from "@/lib/services/conversation-service";
 
 const WAHA_WEBHOOK_SECRET = process.env.WAHA_WEBHOOK_SECRET || "";
 
@@ -83,7 +84,8 @@ export async function POST(req: NextRequest) {
 
         const phone = normalizePhone(payload.from);
 
-        await handleIncomingMessage({
+        // Record message and get/create conversation
+        const conversationId = await handleIncomingMessage({
           leadPhone: phone,
           channel: "whatsapp",
           text: payload.body,
@@ -92,6 +94,16 @@ export async function POST(req: NextRequest) {
             ? new Date(payload.timestamp * 1000)
             : undefined,
         });
+
+        // Trigger AI conversation handler (non-blocking)
+        if (conversationId) {
+          processConversation(conversationId, phone, payload.body).catch(
+            (err) =>
+              console.error(
+                `[Webhook/WAHA] Conversation processing failed: ${err}`,
+              ),
+          );
+        }
 
         break;
       }
