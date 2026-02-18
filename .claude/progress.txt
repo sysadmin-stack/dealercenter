@@ -1,0 +1,226 @@
+# Progress Log — FAC Reactivation Engine
+
+**Projeto**: Florida Auto Center — Sistema de Reativação Multicanal de Leads  
+**Stack**: Next.js 14 + Prisma + Supabase + BullMQ + Redis + WAHA + Resend + Twilio + Claude API  
+**VPS**: Linux (Ubuntu 22.04) — própria  
+**Iniciado**: 2026-02-18
+
+---
+
+## CONTEXT CRÍTICO PARA AGENTES
+
+Leia este bloco ANTES de qualquer tarefa:
+
+### Ambiente já configurado na VPS:
+- ✅ N8N rodando
+- ✅ Chatwoot rodando  
+- ✅ Supabase configurado
+- ✅ WAHA configurado (verificar engine: NOWEB recomendado)
+- ✅ Resend (não SendGrid) como provedor de email
+
+### Dados dos leads:
+- 7.850 leads em 5 arquivos XLSX (2021-2025)
+- 646 duplicatas identificadas entre os arquivos
+- Segmentação: HOT=157, WARM=988, COLD=1967, FROZEN=3873
+- 80% têm email, 100% têm telefone
+- 11 leads com DNC solicitado
+- XLSX tem estilo XML inválido — usar parser ZIP direto, não openpyxl/xlrd
+
+### Gotchas WAHA conhecidos:
+- WAHA retorna webhook duplicado no PRIMEIRO contato de novo sender
+- Solução: dedup por `payload.id` antes de processar
+- chatId format: `PHONENUMBER@c.us` (sem + no início)
+- Sessão deve estar WORKING antes de enviar
+
+### Idiomas dos leads:
+- Detectar por nome: nomes latinos → PT (Brazil) ou ES
+- Fallback: EN para qualquer dúvida
+- Florida tem muito espanhol (Puerto Rico, Cuba, Colombia) — tratar ES separado de PT
+
+### Sales reps ativos:
+- ANTONIO SANCHES (admin)
+- MATHEUS RAMOS TODISCO
+- GUILHERME CHRISCHON
+- BRUNO SOUZA
+- Outros (verificar no banco após importação)
+
+---
+
+## Template para novos planos
+
+Ao completar um plano, copiar e preencher:
+
+```
+## [YYYY-MM-DD] Plan XXX — [Nome]
+
+### What happened
+- [O que foi implementado]
+
+### Fixes
+- [Correções aplicadas]
+
+### Tests
+- Unit tests: ok/failed
+- Integration tests: ok/failed
+- Known failures: [lista]
+
+### Gotchas / Learnings
+- [arquivo]: [problema] → [solução]
+
+### Technical Decisions
+- [decisão]: [justificativa]
+```
+
+---
+
+## Padrões e Convenções do Projeto
+
+### Naming
+- Componentes: PascalCase (`LeadTable.tsx`)
+- Funções/serviços: camelCase (`importLeads()`)
+- Constantes: UPPER_SNAKE_CASE (`WA_MAX_PER_MINUTE`)
+- Arquivos: kebab-case (`lead-importer.ts`)
+- Rotas API: kebab-case (`/api/leads/import`)
+
+### Estrutura de pastas
+```
+src/
+  app/
+    api/         # API Routes Next.js
+    dashboard/   # Pages do dashboard
+    login/
+  components/
+    ui/          # shadcn components
+    leads/       # Componentes de leads
+    campaigns/   # Componentes de campanhas
+    dashboard/   # Layout e navegação
+  lib/
+    clients/     # Wrappers de APIs externas (WAHA, Resend, Twilio, Claude, Chatwoot)
+    services/    # Lógica de negócio
+    parsers/     # Parsers de dados (XLSX, etc.)
+    validators/  # Validação com Zod
+    prompts/     # System prompts para Claude
+    templates/   # Fallback templates de mensagem
+    config/      # Configurações (cadências, etc.)
+    queue.ts     # BullMQ queues
+    db.ts        # Prisma singleton
+    redis.ts     # Redis client
+    logger.ts    # Pino logger
+    auth.ts      # NextAuth config
+  workers/
+    index.ts     # Entry point dos workers
+    whatsapp-worker.ts
+    email-worker.ts
+    sms-worker.ts
+  types/
+    index.ts
+```
+
+### Comandos úteis
+```bash
+# Dev
+npm run dev
+
+# Workers (processo separado)
+npx ts-node src/workers/index.ts
+
+# DB
+npx prisma migrate dev
+npx prisma db seed
+npx prisma studio
+
+# Docker
+docker-compose up -d redis
+docker-compose -f docker-compose.prod.yml up -d
+
+# Lint
+npm run lint
+npm run lint:fix
+
+# Build
+npm run build
+```
+
+---
+
+## Decisões Técnicas Registradas
+
+- **BullMQ sobre N8N para dispatching**: controle fino de rate limit e retry para 7.850 disparos
+- **Resend batch API**: agrupa até 100 emails/request, reduz chamadas de API
+- **WAHA engine NOWEB**: menos CPU/RAM que WEBJS, sem browser headless
+- **Redis para cache de prompts Claude**: TTL 1h, evita custo duplicado para leads similares
+- **Worker separado do app server**: evita bloquear Next.js durante dispatches massivos
+- **Dedup de webhook WAHA**: verificar `payload.id` antes de processar — bug confirmado no GOWS/PLUS
+
+---
+
+## [2026-02-18] Plan 001 — Fundacao
+
+### What happened
+- Criado projeto Next.js 16 (latest) com TypeScript, Tailwind CSS v4, App Router, src dir
+- Instalado todas as dependencias: Prisma v7, NextAuth v5 beta, BullMQ, IORedis, Zod v4, Pino, Resend, Twilio, Anthropic SDK, React Query, Zustand, Recharts
+- Inicializado Prisma com schema basico (PostgreSQL)
+- Configurado shadcn/ui com 8 componentes (button, card, table, badge, dialog, input, select, tabs)
+- Criado Docker (docker-compose.yml + Dockerfile multi-stage)
+- Criado .env.local.example com todas as variaveis
+- Implementado NextAuth v5 com CredentialsProvider + JWT session
+- Implementado middleware protegendo /dashboard/*
+- Criado pagina de login
+- Criado health check endpoint com Redis ping
+- Criado lib: db.ts (Prisma singleton), redis.ts (IORedis), queue.ts (BullMQ 4 queues), logger.ts (Pino)
+- Criado types/index.ts com tipos base
+- Criado toda estrutura de pastas com .gitkeep
+
+### Fixes
+- Prisma v7 usa `@/generated/prisma/client` (nao `@/generated/prisma`)
+- Prisma v7 PrismaClient requer `accelerateUrl` ou `adapter` (diferente de v5)
+- BullMQ bundled ioredis conflita com ioredis top-level — usar ioredis do BullMQ para queues
+- Next.js 16 deprecou middleware.ts em favor de proxy (warning apenas, funciona)
+
+### Tests
+- `npm run lint`: ok (sem erros)
+- `npm run build`: ok (compila com sucesso)
+- `docker compose up redis`: ok (Redis 7 Alpine rodando)
+- `GET /api/health`: ok (200, redis connected)
+- `/login`: ok (200, formulario renderiza)
+- `/dashboard`: ok (307 redirect para /login)
+
+### Gotchas / Learnings
+- `db.ts`: Prisma v7 nao tem `datasourceUrl` — usa `accelerateUrl` placeholder ate Plan 002
+- `queue.ts`: Conflito de tipos ioredis — BullMQ tem sua propria versao do ioredis
+- Next.js 16 (nao 14) foi instalado (latest) — middleware deprecated mas funcional
+- Zod v4 usa `import { z } from "zod/v4"` (nao `"zod"`)
+
+### Technical Decisions
+- **Next.js 16 em vez de 14**: create-next-app@latest instala 16, mantido pois e compativel
+- **Prisma v7**: nova API de client, requer adapter ou accelerateUrl
+- **shadcn/ui com Tailwind v4**: init automatico detectou framework e versao
+- **BullMQ usa IORedis proprio**: evita conflito de tipos com ioredis top-level
+
+---
+
+## Planos Complementares (adicionados após revisão completa)
+
+### Plano 013 — Analytics Engine
+- A/B analysis com threshold de 100 amostras e 10% lift mínimo
+- Best time por hora+dia da semana, segmento e canal
+- Sugestões de ajuste de cadência (não automático — admin aprova)
+- Relatório semanal em PT via Claude → WhatsApp para Antonio
+- Job: BullMQ repeatable, cron `0 2 * * *`
+- Novas tabelas: `ab_results`, `best_times`, `cadence_suggestions`
+
+### Plano 014 — Super Lista HOT
+- 1.144 leads com credit_app=true e status!=SOLD
+- Score +30 sobre o base do segmento
+- Tag `super_hot` no array `tags` do modelo Lead
+- Cadência de 3 dias (não 7) com escalonamento humano no dia 3
+- Tom: nunca mencionar que já fizeram credit app anteriormente
+- SQL para identificar: `WHERE credit_app = true AND status != 'sold' AND opted_out = false`
+
+### Plano 015 — Meta Ads Export
+- Export CSV hasheado SHA-256 (email lowercase trim + phone E.164 sem +)
+- Formato: colunas Meta padrão (email, phone, fn, ln, ct, st, zip, country)
+- country code numérico: 840 = USA
+- Apenas FROZEN + opted_out=false
+- Processo manual de upload no Meta Ads Manager (não usa Meta API)
+- Audit log obrigatório em cada exportação

@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - HOSTNAME=0.0.0.0
+    env_file:
+      - .env.local
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis-data:
