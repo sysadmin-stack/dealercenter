@@ -1,4 +1,4 @@
-import { PrismaClient, Segment, Language } from "../src/generated/prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -7,6 +7,11 @@ import {
   parseDealerCenterXlsx,
   type RawLead,
 } from "../src/lib/parsers/dealercenter-xlsx";
+import {
+  getSegment,
+  getScore,
+  detectLanguage,
+} from "../src/lib/services/lead-segmenter";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -21,111 +26,6 @@ const xlsxFiles = [
   { file: "seed/2026.xlsx", year: 2026 },
   // { file: "seed/2025.xlsx", year: 2025 },
 ];
-
-// ─── Segmentation ───────────────────────────────────────
-
-function getSegment(daysOld: number | null): Segment {
-  if (daysOld === null) return Segment.COLD;
-  if (daysOld < 90) return Segment.HOT;
-  if (daysOld < 365) return Segment.WARM;
-  if (daysOld < 730) return Segment.COLD;
-  return Segment.FROZEN;
-}
-
-function getScore(
-  segment: Segment,
-  creditApp: boolean,
-  originType: string | null,
-  email: string | null,
-): number {
-  const baseScores: Record<Segment, number> = {
-    HOT: 80,
-    WARM: 50,
-    COLD: 25,
-    FROZEN: 10,
-  };
-  let score = baseScores[segment];
-  if (creditApp) score += 20;
-  if (originType?.toUpperCase() === "WALK-IN") score += 15;
-  if (email) score += 5;
-  return score;
-}
-
-// ─── Language Detection ─────────────────────────────────
-
-const PT_PATTERNS = [
-  /\bsilvan[ao]\b/i,
-  /\blucian[ao]\b/i,
-  /\bmatheus\b/i,
-  /\bjoao\b/i,
-  /\bmaria\b/i,
-  /\bjose\b/i,
-  /\bcarlos\b/i,
-  /\bpaulo\b/i,
-  /\bpedro\b/i,
-  /\bana\b/i,
-  /\brafael\b/i,
-  /\bbruno\b/i,
-  /\bthiago\b/i,
-  /\brendl?\b/i,
-  /\bguilherme\b/i,
-  /\bfernand[ao]\b/i,
-  /\bvictor\b/i,
-  /\bfelipe\b/i,
-  /\bleandro\b/i,
-  /\broberto\b/i,
-  /\brenan\b/i,
-  /\bedson\b/i,
-  /\bwellington\b/i,
-  /\bnatalia\b/i,
-  /\bpatricia\b/i,
-  /\bfranco\b/i,
-  /\bda silva\b/i,
-  /\bde oliveira\b/i,
-  /\bsantos\b/i,
-  /\btodisco\b/i,
-  /\bde souza\b/i,
-  /\bpereira\b/i,
-  /\balmeida\b/i,
-  /\bnascimento\b/i,
-  /\bribeiro\b/i,
-  /\blima\b/i,
-  /\bde jesus\b/i,
-  /\bde oliveira\b/i,
-  /\bgoes\b/i,
-  /\btavares\b/i,
-];
-
-const ES_PATTERNS = [
-  /\brivera\b/i,
-  /\bvelez\b/i,
-  /\brodriguez\b/i,
-  /\bhernandez\b/i,
-  /\bgarcia\b/i,
-  /\bmartinez\b/i,
-  /\blopez\b/i,
-  /\bgonzalez\b/i,
-  /\bdiaz\b/i,
-  /\bmorales\b/i,
-  /\bramirez\b/i,
-  /\btorres\b/i,
-  /\bflores\b/i,
-  /\bcruz\b/i,
-  /\bsanchez\b/i,
-  /\bcastillo\b/i,
-  /\breyes\b/i,
-  /\bortiz\b/i,
-  /\bvargas\b/i,
-  /\bmendez\b/i,
-  /\bramos\b/i,
-  /\bdelgado\b/i,
-];
-
-function detectLanguage(name: string): Language {
-  if (PT_PATTERNS.some((p) => p.test(name))) return Language.PT;
-  if (ES_PATTERNS.some((p) => p.test(name))) return Language.ES;
-  return Language.EN;
-}
 
 // ─── Date Parsing ───────────────────────────────────────
 
