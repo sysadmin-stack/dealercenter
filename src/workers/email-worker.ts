@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
 import { Resend } from "resend";
 import { db, TokenBucket } from "./utils";
-import { generateMessage } from "../lib/services/message-content";
+import { generateMessage } from "../lib/services/copywriter";
 
 interface TouchJobData {
   touchId: string;
@@ -43,8 +43,8 @@ async function processEmail(job: Job<TouchJobData>) {
   // 3. Rate limit
   await rateLimiter.take();
 
-  // 4. Generate message
-  const { subject, text, html } = generateMessage(lead, "email", templateType);
+  // 4. Generate message (AI with fallback)
+  const { subject, text, html, variant, source } = await generateMessage(lead, "email", templateType);
 
   // 5. Send via Resend
   try {
@@ -66,7 +66,7 @@ async function processEmail(job: Job<TouchJobData>) {
     });
 
     await db.touchEvent.create({
-      data: { touchId, eventType: "sent", payload: { channel: "email" } },
+      data: { touchId, eventType: "sent", payload: { channel: "email", variant, source } },
     });
 
     console.log(`[Email] Sent to ${lead.name} (${lead.email})`);

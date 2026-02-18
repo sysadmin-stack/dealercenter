@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
 import Twilio from "twilio";
 import { db, getWindowDelay, TokenBucket } from "./utils";
-import { generateMessage } from "../lib/services/message-content";
+import { generateMessage } from "../lib/services/copywriter";
 
 interface TouchJobData {
   touchId: string;
@@ -55,8 +55,8 @@ async function processSms(job: Job<TouchJobData>) {
   // 4. Rate limit
   await rateLimiter.take();
 
-  // 5. Generate message
-  const { text } = generateMessage(lead, "sms", templateType);
+  // 5. Generate message (AI with fallback)
+  const { text, variant, source } = await generateMessage(lead, "sms", templateType);
 
   // 6. Send via Twilio
   try {
@@ -72,7 +72,7 @@ async function processSms(job: Job<TouchJobData>) {
     });
 
     await db.touchEvent.create({
-      data: { touchId, eventType: "sent", payload: { channel: "sms" } },
+      data: { touchId, eventType: "sent", payload: { channel: "sms", variant, source } },
     });
 
     console.log(`[SMS] Sent to ${lead.name} (${lead.phone})`);

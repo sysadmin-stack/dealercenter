@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import IORedis from "bullmq/node_modules/ioredis";
 import { db, getWindowDelay, TokenBucket } from "./utils";
 import { sendWhatsApp } from "../lib/clients/waha";
-import { generateMessage } from "../lib/services/message-content";
+import { generateMessage } from "../lib/services/copywriter";
 
 interface TouchJobData {
   touchId: string;
@@ -46,8 +46,8 @@ async function processWhatsApp(job: Job<TouchJobData>) {
   // 4. Rate limit
   await rateLimiter.take();
 
-  // 5. Generate message
-  const { text } = generateMessage(lead, "whatsapp", templateType);
+  // 5. Generate message (AI with fallback)
+  const { text, variant, source } = await generateMessage(lead, "whatsapp", templateType);
 
   // 6. Send via WAHA
   try {
@@ -59,7 +59,7 @@ async function processWhatsApp(job: Job<TouchJobData>) {
     });
 
     await db.touchEvent.create({
-      data: { touchId, eventType: "sent", payload: { channel: "whatsapp" } },
+      data: { touchId, eventType: "sent", payload: { channel: "whatsapp", variant, source } },
     });
 
     console.log(`[WA] Sent to ${lead.name} (${lead.phone})`);
