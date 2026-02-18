@@ -35,6 +35,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Download,
+  Snowflake,
 } from "lucide-react";
 
 interface Lead {
@@ -82,6 +84,8 @@ export default function LeadsPage() {
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [frozenCount, setFrozenCount] = useState<number | null>(null);
 
   const fetchLeads = useCallback(
     async (page = 1) => {
@@ -107,6 +111,31 @@ export default function LeadsPage() {
   useEffect(() => {
     fetchLeads(1);
   }, [fetchLeads]);
+
+  useEffect(() => {
+    fetch("/api/leads?segment=FROZEN&limit=1")
+      .then((r) => r.json())
+      .then((d) => setFrozenCount(d.pagination?.total ?? null))
+      .catch(() => {});
+  }, []);
+
+  async function handleMetaExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/leads/export/meta-audience?segment=FROZEN");
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("content-disposition")?.match(/filename="(.+)"/)?.[1] || "meta-audience.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Export failed
+    }
+    setExporting(false);
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -223,6 +252,43 @@ export default function LeadsPage() {
           </div>
         )}
       </div>
+
+      {/* Meta Ads Export Card */}
+      {frozenCount !== null && frozenCount > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Snowflake className="size-4 text-blue-500" />
+              FROZEN Leads — Meta Ads Export
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">{frozenCount.toLocaleString()}</span> FROZEN leads available
+                  {" · "}Estimated Meta match: <span className="font-medium">~{Math.round(frozenCount * 0.65).toLocaleString()}</span> people
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  SHA-256 hashed CSV. Safe for direct upload to Meta Ads Manager.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleMetaExport}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Download className="size-4" />
+                )}
+                Export Meta Audience
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
