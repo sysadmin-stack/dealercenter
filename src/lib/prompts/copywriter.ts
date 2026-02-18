@@ -61,6 +61,14 @@ const TEMPLATE_DESCRIPTIONS: Record<string, string> = {
     "Monthly update with what's new. Informational, not salesy.",
   single_reactivation:
     "One-shot attempt to re-engage a very old lead. Brief and intriguing.",
+  super_hot_intro:
+    "First contact for a high-intent lead. Create excitement about new inventory opportunities. Do NOT mention credit applications or past visits. Make it feel like a fresh, exclusive opportunity.",
+  super_hot_offer:
+    "Email with special/exclusive offer framing. Focus on new arrivals, limited-time financing, or reserved vehicles. Never mention previous interactions. Tone: exclusive and time-sensitive.",
+  super_hot_sms:
+    "Brief SMS with urgency. Mention exclusive conditions available for a limited time. Ask them to reply for details. Never reference past history.",
+  super_hot_human_touch:
+    "Warm, personal follow-up. Mention wanting to personally help them find the right vehicle. Offer to call or schedule a visit. This is the last automated message before human contact.",
 };
 
 interface CopywriterPromptInput {

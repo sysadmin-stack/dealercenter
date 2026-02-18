@@ -2,10 +2,22 @@ import type { Channel, Segment } from "@/generated/prisma/client";
 
 export interface CadenceStep {
   day: number;
-  channel: Channel;
+  channel: Channel | "task";
   hour: number;
   templateType: string;
 }
+
+/**
+ * Super HOT cadence for leads with credit app completed.
+ * More aggressive (3 days) with faster human escalation.
+ */
+export const SUPER_HOT_CADENCE: CadenceStep[] = [
+  { day: 0, channel: "whatsapp", hour: 9, templateType: "super_hot_intro" },
+  { day: 0, channel: "email", hour: 14, templateType: "super_hot_offer" },
+  { day: 1, channel: "sms", hour: 10, templateType: "super_hot_sms" },
+  { day: 3, channel: "whatsapp", hour: 10, templateType: "super_hot_human_touch" },
+  { day: 3, channel: "task", hour: 10, templateType: "assign_to_rep" },
+];
 
 export const CADENCES: Record<Segment, CadenceStep[]> = {
   HOT: [

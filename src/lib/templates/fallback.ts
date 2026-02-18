@@ -36,6 +36,12 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
     "whatsapp:single_reactivation": {
       text: "Hi {{name}}! It's been a while since we connected. We have some great deals right now. Interested in taking a look?",
     },
+    "whatsapp:super_hot_intro": {
+      text: "Hi {{name}}! This is Antonio from Florida Auto Center. We just got some vehicles in that I think you'd love — I set one aside for you. Can I send you the details?",
+    },
+    "whatsapp:super_hot_human_touch": {
+      text: "{{name}}, I'd love to personally help you find the right car. Would you prefer a call or to come visit us? I can work around your schedule.",
+    },
     // ─── Email ───
     "email:stock_offer": {
       subject: "{{name}}, check out our latest inventory!",
@@ -62,12 +68,20 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
       text: "Hi {{name}},\n\nHere's what's new at Florida Auto Center this month.\n\nNew arrivals, financing specials, and more!\n\nBest,\nFlorida Auto Center",
       html: "<p>Hi {{name}},</p><p>Here's what's new at Florida Auto Center this month.</p><p>New arrivals, financing specials, and more!</p><p>Best,<br>Florida Auto Center</p>",
     },
+    "email:super_hot_offer": {
+      subject: "{{name}}, we reserved something special for you",
+      text: "Hi {{name}},\n\nWe have exclusive conditions available for a limited time — including special financing rates and new arrivals that just hit the lot.\n\nI'd love to show you what we have. Reply to this email or call us to schedule a visit.\n\nBest,\nAntonio Sanches\nFlorida Auto Center",
+      html: "<p>Hi {{name}},</p><p>We have <strong>exclusive conditions</strong> available for a limited time — including special financing rates and new arrivals that just hit the lot.</p><p>I'd love to show you what we have. Reply to this email or call us to schedule a visit.</p><p>Best,<br>Antonio Sanches<br>Florida Auto Center</p>",
+    },
     // ─── SMS ───
     "sms:short_followup": {
       text: "Hi {{name}}, still looking for a car? Florida Auto Center has great options. Reply STOP to opt out.",
     },
     "sms:last_touch": {
       text: "{{name}}, we're here when you're ready! Florida Auto Center - Reply STOP to opt out.",
+    },
+    "sms:super_hot_sms": {
+      text: "{{name}}, exclusive conditions available for 48h at Florida Auto Center. Reply YES for details. Reply STOP to opt out.",
     },
   },
   PT: {
@@ -92,6 +106,12 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
     },
     "whatsapp:single_reactivation": {
       text: "Oi {{name}}! Faz um tempo que nao nos falamos. Temos otimas ofertas agora. Quer dar uma olhada?",
+    },
+    "whatsapp:super_hot_intro": {
+      text: "Oi {{name}}! Aqui e o Antonio da Florida Auto Center. Chegaram uns veiculos que acho que vao te interessar muito — separei um especialmente pra voce. Posso te mostrar?",
+    },
+    "whatsapp:super_hot_human_touch": {
+      text: "{{name}}, gostaria de te ajudar pessoalmente a encontrar o carro certo. Prefere que eu ligue ou quer vir nos visitar? Me adapto ao seu horario.",
     },
     // ─── Email ───
     "email:stock_offer": {
@@ -119,12 +139,20 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
       text: "Oi {{name}},\n\nVeja o que ha de novo na Florida Auto Center este mes.\n\nNovos veiculos, promocoes de financiamento e mais!\n\nAbraco,\nFlorida Auto Center",
       html: "<p>Oi {{name}},</p><p>Veja o que ha de novo na Florida Auto Center este mes.</p><p>Novos veiculos, promocoes de financiamento e mais!</p><p>Abraco,<br>Florida Auto Center</p>",
     },
+    "email:super_hot_offer": {
+      subject: "{{name}}, reservamos algo especial pra voce",
+      text: "Oi {{name}},\n\nTemos condicoes exclusivas por tempo limitado — incluindo taxas especiais de financiamento e novidades no estoque.\n\nAdoraria te mostrar. Responda este email ou ligue pra agendar uma visita.\n\nAbraco,\nAntonio Sanches\nFlorida Auto Center",
+      html: "<p>Oi {{name}},</p><p>Temos <strong>condicoes exclusivas</strong> por tempo limitado — incluindo taxas especiais de financiamento e novidades no estoque.</p><p>Adoraria te mostrar. Responda este email ou ligue pra agendar uma visita.</p><p>Abraco,<br>Antonio Sanches<br>Florida Auto Center</p>",
+    },
     // ─── SMS ───
     "sms:short_followup": {
       text: "Oi {{name}}, ainda procurando carro? Florida Auto Center tem otimas opcoes. Responda PARAR para cancelar.",
     },
     "sms:last_touch": {
       text: "{{name}}, estamos aqui quando voce estiver pronto! Florida Auto Center - Responda PARAR para cancelar.",
+    },
+    "sms:super_hot_sms": {
+      text: "{{name}}, condicoes exclusivas por 48h na Florida Auto Center. Responda SIM para detalhes. Responda PARAR para cancelar.",
     },
   },
   ES: {
@@ -149,6 +177,12 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
     },
     "whatsapp:single_reactivation": {
       text: "Hola {{name}}! Ha pasado un tiempo desde que hablamos. Tenemos excelentes ofertas ahora. Te interesa echar un vistazo?",
+    },
+    "whatsapp:super_hot_intro": {
+      text: "Hola {{name}}! Soy Antonio de Florida Auto Center. Llegaron unos vehiculos que creo que te van a encantar — separe uno especialmente para ti. Te muestro los detalles?",
+    },
+    "whatsapp:super_hot_human_touch": {
+      text: "{{name}}, me gustaria ayudarte personalmente a encontrar el carro perfecto. Prefieres que te llame o quieres visitarnos? Me adapto a tu horario.",
     },
     // ─── Email ───
     "email:stock_offer": {
@@ -176,12 +210,20 @@ const templates: Record<Language, Record<TemplateKey, FallbackTemplate>> = {
       text: "Hola {{name}},\n\nMira lo nuevo en Florida Auto Center este mes.\n\nNuevos vehiculos, promociones de financiamiento y mas!\n\nSaludos,\nFlorida Auto Center",
       html: "<p>Hola {{name}},</p><p>Mira lo nuevo en Florida Auto Center este mes.</p><p>Nuevos vehiculos, promociones de financiamiento y mas!</p><p>Saludos,<br>Florida Auto Center</p>",
     },
+    "email:super_hot_offer": {
+      subject: "{{name}}, reservamos algo especial para ti",
+      text: "Hola {{name}},\n\nTenemos condiciones exclusivas por tiempo limitado — incluyendo tasas especiales de financiamiento y nuevas llegadas.\n\nMe encantaria mostrarte. Responde este email o llamanos para agendar una visita.\n\nSaludos,\nAntonio Sanches\nFlorida Auto Center",
+      html: "<p>Hola {{name}},</p><p>Tenemos <strong>condiciones exclusivas</strong> por tiempo limitado — incluyendo tasas especiales de financiamiento y nuevas llegadas.</p><p>Me encantaria mostrarte. Responde este email o llamanos para agendar una visita.</p><p>Saludos,<br>Antonio Sanches<br>Florida Auto Center</p>",
+    },
     // ─── SMS ───
     "sms:short_followup": {
       text: "Hola {{name}}, sigues buscando carro? Florida Auto Center tiene excelentes opciones. Responde PARAR para cancelar.",
     },
     "sms:last_touch": {
       text: "{{name}}, estamos aqui cuando estes listo! Florida Auto Center - Responde PARAR para cancelar.",
+    },
+    "sms:super_hot_sms": {
+      text: "{{name}}, condiciones exclusivas por 48h en Florida Auto Center. Responde SI para detalles. Responde PARAR para cancelar.",
     },
   },
 };

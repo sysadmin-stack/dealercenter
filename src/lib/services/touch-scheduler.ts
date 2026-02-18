@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { whatsappQueue, emailQueue, smsQueue } from "@/lib/queue";
-import { CADENCES, type CadenceStep } from "@/lib/config/cadences";
+import { CADENCES, SUPER_HOT_CADENCE, type CadenceStep } from "@/lib/config/cadences";
+import { assignToRep } from "@/lib/services/assign-to-rep";
 import type { Campaign, Lead, Channel, Segment } from "@/generated/prisma/client";
 
 function getQueueForChannel(channel: Channel) {
@@ -45,10 +46,27 @@ export async function scheduleTouch(
   const campaignChannels = new Set(campaign.channels);
 
   for (const lead of leads) {
-    // Get cadence for this lead's segment
-    const steps = CADENCES[lead.segment as Segment] ?? CADENCES.COLD;
+    // Use SUPER_HOT cadence for tagged leads, otherwise segment cadence
+    const isSuperHot = lead.tags?.includes("super_hot");
+    const steps = isSuperHot
+      ? SUPER_HOT_CADENCE
+      : (CADENCES[lead.segment as Segment] ?? CADENCES.COLD);
 
     for (const step of steps) {
+      // Handle "task" channel (assign_to_rep) — not a queue job
+      if (step.channel === "task") {
+        const scheduledAt = computeScheduledAt(campaignStart, step);
+        const delay = Math.max(0, scheduledAt.getTime() - Date.now());
+
+        // Schedule rep assignment via setTimeout (or immediate if past)
+        setTimeout(() => {
+          assignToRep(lead.id, campaign.id).catch((err) =>
+            console.error(`[Scheduler] assign_to_rep failed: ${err}`),
+          );
+        }, delay);
+        continue;
+      }
+
       // Only schedule if campaign includes this channel
       if (!campaignChannels.has(step.channel)) continue;
 
