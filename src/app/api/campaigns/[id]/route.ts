@@ -25,7 +25,13 @@ export async function GET(
     where: { id },
     include: {
       touches: {
-        select: { id: true, status: true, channel: true, scheduledAt: true },
+        select: {
+          id: true,
+          status: true,
+          channel: true,
+          scheduledAt: true,
+          lead: { select: { name: true } },
+        },
         orderBy: { scheduledAt: "asc" },
         take: 100,
       },

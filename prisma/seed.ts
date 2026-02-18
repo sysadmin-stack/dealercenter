@@ -18,8 +18,8 @@ const prisma = new PrismaClient({ adapter });
 
 // ─── Config ─────────────────────────────────────────────
 
-const ADMIN_EMAIL = "antonio@floridautocenter.com";
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_EMAIL = "asanches@flacenter.com";
+const ADMIN_PASSWORD = "123@Gg123";
 const ADMIN_NAME = "Antonio Sanches";
 
 const xlsxFiles = [
