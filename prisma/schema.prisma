@@ -232,6 +232,54 @@ model DncList {
   @@map("dnc_list")
 }
 
+model AbResult {
+  id          String   @id @default(uuid())
+  campaignId  String?
+  channel     String
+  segment     String
+  winner      String?  // 'A', 'B', or null
+  lift        Float?
+  sampleSizeA Int
+  sampleSizeB Int
+  rateA       Float
+  rateB       Float
+  reason      String?
+  analyzedAt  DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([analyzedAt])
+  @@map("ab_results")
+}
+
+model BestTime {
+  id             String   @id @default(uuid())
+  channel        String
+  segment        String
+  bestHour       Int
+  bestDayOfWeek  Int
+  engagementRate Float
+  sampleSize     Int
+  calculatedAt   DateTime @default(now())
+
+  @@index([channel, segment])
+  @@map("best_times")
+}
+
+model CadenceSuggestion {
+  id            String   @id @default(uuid())
+  segment       String
+  channel       String
+  touchNumber   Int?
+  currentHour   Int?
+  suggestedHour Int
+  reason        String?
+  status        String   @default("pending") // pending, approved, rejected
+  createdAt     DateTime @default(now())
+
+  @@index([status])
+  @@map("cadence_suggestions")
+}
+
 model AuditLog {
   id         String   @id @default(uuid())
   userId     String?
