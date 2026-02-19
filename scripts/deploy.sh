@@ -50,7 +50,7 @@ cmd_setup() {
     sleep 5
 
     log "Running database migrations..."
-    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" run --rm app npx prisma migrate deploy
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" --profile migrate run --rm migrator
 
     log "Starting all services..."
     docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d
@@ -73,7 +73,7 @@ cmd_deploy() {
     docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" build
 
     log "Running migrations..."
-    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" run --rm app npx prisma migrate deploy
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" --profile migrate run --rm migrator
 
     log "Restarting services..."
     docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d
@@ -150,7 +150,7 @@ cmd_down() {
 # Seed database
 cmd_seed() {
     log "Seeding database..."
-    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" run --rm app npx prisma db seed
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" --profile migrate run --rm migrator npx prisma db seed
     log "Seed complete!"
 }
 
