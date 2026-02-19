@@ -31,8 +31,9 @@ const segmentAccent: Record<string, string> = {
 };
 
 interface PreviewResult {
-  eligible: number;
+  totalLeads: number;
   bySegment: Record<string, number>;
+  byChannel: Record<string, number>;
 }
 
 export default function NewCampaignPage() {
@@ -81,7 +82,7 @@ export default function NewCampaignPage() {
       const previewRes = await fetch(`/api/campaigns/${campaign.id}/preview`);
       if (!previewRes.ok) throw new Error("Failed to fetch preview");
       const data = await previewRes.json();
-      if (data && typeof data.eligible === "number") {
+      if (data && typeof data.totalLeads === "number") {
         setPreview(data);
       } else {
         setError("Preview returned unexpected data");
@@ -254,7 +255,7 @@ export default function NewCampaignPage() {
               className="text-3xl font-bold text-[#1a2332]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {(preview.eligible ?? 0).toLocaleString()}
+              {preview.totalLeads.toLocaleString()}
             </p>
             <p className="text-sm text-slate-500">eligible leads</p>
             <div className="mt-3 flex flex-wrap gap-2">
