@@ -262,7 +262,7 @@ export default function LeadsPage() {
             ) : (
               <Upload className="size-4" />
             )}
-            Import Solds
+            Import Leads
           </Button>
         </div>
         <input
