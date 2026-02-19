@@ -250,7 +250,7 @@ export default function LeadsPage() {
             ) : (
               <FileSpreadsheet className="size-4" />
             )}
-            Import Deals
+            Import Solds
           </Button>
           <Button
             onClick={() => fileInputRef.current?.click()}

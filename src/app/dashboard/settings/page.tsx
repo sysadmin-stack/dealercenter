@@ -648,7 +648,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* N8N + Sales Rep Phone */}
+          {/* N8N */}
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <div className="flex items-center gap-3">
@@ -656,7 +656,7 @@ export default function SettingsPage() {
                   n8n
                 </div>
                 <div>
-                  <CardTitle className="text-base">N8N & Sales Rep</CardTitle>
+                  <CardTitle className="text-base">N8N (Automation)</CardTitle>
                 </div>
               </div>
               <StatusDot status={health.find((h) => h.service === "n8n")?.status || "not_configured"} />
@@ -665,6 +665,23 @@ export default function SettingsPage() {
               <div className="text-sm text-slate-500">
                 Webhook Secret: <EnvIndicator configured={envStatus.N8N_WEBHOOK_SECRET} />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Sales Rep */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-teal-100 text-lg">
+                  SR
+                </div>
+                <div>
+                  <CardTitle className="text-base">Sales Rep (Handoff)</CardTitle>
+                </div>
+              </div>
+              <StatusDot status={salesRep.phone ? "connected" : "not_configured"} />
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <FieldLabel label="Sales Rep Phone" tooltip={TOOLTIPS.salesRepPhone} />
                 <Input
@@ -672,6 +689,9 @@ export default function SettingsPage() {
                   onChange={(e) => updateField("integration.salesRep", "phone", e.target.value)}
                   placeholder="+1 555 123 4567"
                 />
+              </div>
+              <div className="text-sm text-slate-500">
+                Env var: <EnvIndicator configured={envStatus.SALES_REP_PHONE} />
               </div>
               <div className="flex justify-end border-t pt-4">
                 <SaveButton
