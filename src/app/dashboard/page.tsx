@@ -80,9 +80,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch("/api/dashboard/stats")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch stats");
+        return r.json();
+      })
       .then((data) => {
-        setStats(data);
+        if (data && typeof data.totalLeads === "number") {
+          setStats(data);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
