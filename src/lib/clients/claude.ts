@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
 
 let _client: Anthropic | null = null;
 
@@ -19,6 +20,7 @@ export interface ClaudeResponse {
 
 /**
  * Generate text via Claude API with error handling and token logging.
+ * Model is read from DB settings (fallback to claude-sonnet-4-6).
  */
 export async function generateWithClaude(
   systemPrompt: string,
@@ -29,9 +31,10 @@ export async function generateWithClaude(
   },
 ): Promise<ClaudeResponse> {
   const client = getClient();
+  const claudeConfig = await getSetting("integration.claude", DEFAULTS["integration.claude"]);
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: claudeConfig.model,
     max_tokens: options?.maxTokens ?? 512,
     temperature: options?.temperature ?? 0.8,
     system: systemPrompt,
@@ -47,7 +50,7 @@ export async function generateWithClaude(
   const outputTokens = response.usage.output_tokens;
 
   console.log(
-    `[Claude] tokens: ${inputTokens} in / ${outputTokens} out (${inputTokens + outputTokens} total)`,
+    `[Claude] model=${claudeConfig.model} tokens: ${inputTokens} in / ${outputTokens} out (${inputTokens + outputTokens} total)`,
   );
 
   return { text, inputTokens, outputTokens };

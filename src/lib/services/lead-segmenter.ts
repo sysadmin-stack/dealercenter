@@ -1,7 +1,11 @@
 import { Segment, Language } from "@/generated/prisma/client";
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
 
 // ─── Segmentation ───────────────────────────────────────
 
+/**
+ * Sync version (backward compat) — uses hardcoded thresholds.
+ */
 export function getSegment(daysOld: number | null): Segment {
   if (daysOld === null) return Segment.COLD;
   if (daysOld < 90) return Segment.HOT;
@@ -10,6 +14,21 @@ export function getSegment(daysOld: number | null): Segment {
   return Segment.FROZEN;
 }
 
+/**
+ * Async version — reads thresholds from DB settings.
+ */
+export async function getSegmentAsync(daysOld: number | null): Promise<Segment> {
+  const thresholds = await getSetting("segmentation.thresholds", DEFAULTS["segmentation.thresholds"]);
+  if (daysOld === null) return Segment.COLD;
+  if (daysOld < thresholds.hot) return Segment.HOT;
+  if (daysOld < thresholds.warm) return Segment.WARM;
+  if (daysOld < thresholds.cold) return Segment.COLD;
+  return Segment.FROZEN;
+}
+
+/**
+ * Sync version (backward compat) — uses hardcoded scores.
+ */
 export function getScore(
   segment: Segment,
   creditApp: boolean,
@@ -26,6 +45,29 @@ export function getScore(
   if (creditApp) score += 20;
   if (originType?.toUpperCase() === "WALK-IN") score += 15;
   if (email) score += 5;
+  return score;
+}
+
+/**
+ * Async version — reads scoring weights from DB settings.
+ */
+export async function getScoreAsync(
+  segment: Segment,
+  creditApp: boolean,
+  originType: string | null,
+  email: string | null,
+): Promise<number> {
+  const scoring = await getSetting("segmentation.scoring", DEFAULTS["segmentation.scoring"]);
+  const baseScores: Record<Segment, number> = {
+    HOT: scoring.baseHot,
+    WARM: scoring.baseWarm,
+    COLD: scoring.baseCold,
+    FROZEN: scoring.baseFrozen,
+  };
+  let score = baseScores[segment];
+  if (creditApp) score += scoring.creditAppBonus;
+  if (originType?.toUpperCase() === "WALK-IN") score += scoring.walkInBonus;
+  if (email) score += scoring.emailBonus;
   return score;
 }
 

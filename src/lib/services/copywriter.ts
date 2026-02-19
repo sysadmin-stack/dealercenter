@@ -92,7 +92,7 @@ export async function generateMessage(
       creditApp: lead.creditApp,
     };
 
-    const systemPrompt = buildSystemPrompt(promptInput);
+    const systemPrompt = await buildSystemPrompt(promptInput);
     const userPrompt = buildUserPrompt(promptInput);
 
     const { text: rawResponse } = await generateWithClaude(systemPrompt, userPrompt, {
@@ -136,7 +136,7 @@ export async function generateMessage(
     const message = err instanceof Error ? err.message : "Unknown error";
     console.warn(`[Copywriter] AI failed, using fallback: ${message}`);
 
-    const fallback = getFallbackTemplate(name, channel, lead.language, templateType);
+    const fallback = await getFallbackTemplate(name, channel, lead.language, templateType);
     return {
       ...fallback,
       variant,

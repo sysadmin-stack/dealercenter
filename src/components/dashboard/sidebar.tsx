@@ -11,6 +11,7 @@ import {
   LineChart,
   LogOut,
   Car,
+  Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/dashboard/intelligence", label: "Intelligence", icon: LineChart },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

@@ -3,6 +3,7 @@ import IORedis from "bullmq/node_modules/ioredis";
 import { Resend } from "resend";
 import { db, TokenBucket, dncPreFlight } from "./utils";
 import { generateMessage } from "../lib/services/copywriter";
+import { getSetting, DEFAULTS } from "../lib/config/settings";
 
 interface TouchJobData {
   touchId: string;
@@ -18,7 +19,6 @@ function getResend() {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
   return _resend;
 }
-const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@floridautocenter.com";
 
 // Rate limit: 10 req/s
 const rateLimiter = new TokenBucket(10, 10);
@@ -51,12 +51,17 @@ async function processEmail(job: Job<TouchJobData>) {
   // 5. Generate message (AI with fallback)
   const { subject, text, html, variant, source } = await generateMessage(lead, "email", templateType);
 
-  // 6. Send via Resend
+  // 6. Read email sender config from DB
+  const resendConfig = await getSetting("integration.resend", DEFAULTS["integration.resend"]);
+  const identity = await getSetting("dealer.identity", DEFAULTS["dealer.identity"]);
+  const fromAddress = `${resendConfig.fromName} <${resendConfig.fromEmail}>`;
+
+  // 7. Send via Resend
   try {
     await getResend().emails.send({
-      from: fromEmail,
+      from: fromAddress,
       to: lead.email,
-      subject: subject || "Florida Auto Center",
+      subject: subject || identity.name,
       text,
       html,
       tags: [

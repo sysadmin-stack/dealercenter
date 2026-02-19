@@ -6,6 +6,8 @@
  * - We add a 15-minute buffer on both ends for safety.
  */
 
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
+
 export const COMPLIANCE = {
   // Florida Telephone Solicitation Act (with safety buffers)
   sendWindow: {
@@ -32,12 +34,39 @@ export const COMPLIANCE = {
   },
 } as const;
 
+// ─── Dynamic getters ──────────────────────────────────────
+
+interface SendWindow {
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+  timezone: string;
+}
+
+interface FrequencyCaps {
+  perChannelPerWeek: number;
+  totalPerDay: number;
+  totalPerWeek: number;
+  minHoursBetweenSameChannel: number;
+}
+
+export async function getSendWindow(): Promise<SendWindow> {
+  return getSetting("compliance.sendWindow", DEFAULTS["compliance.sendWindow"]);
+}
+
+export async function getFrequencyCaps(): Promise<FrequencyCaps> {
+  return getSetting("compliance.frequencyCaps", DEFAULTS["compliance.frequencyCaps"]);
+}
+
+// ─── Time functions ───────────────────────────────────────
+
 /**
- * Get the current hour and minute in Eastern Time from a Date.
+ * Get the current hour and minute in the configured timezone from a Date.
  */
-function getEasternTime(date: Date): { hour: number; minute: number } {
+function getTimeInZone(date: Date, timezone: string): { hour: number; minute: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: COMPLIANCE.sendWindow.timezone,
+    timeZone: timezone,
     hour: "numeric",
     minute: "numeric",
     hour12: false,
@@ -50,12 +79,13 @@ function getEasternTime(date: Date): { hour: number; minute: number } {
 }
 
 /**
- * Check whether a given date/time falls within the Florida send window.
+ * Check whether a given date/time falls within the send window.
+ * Uses static COMPLIANCE constant (sync) — for backward compat.
  */
 export function isWithinSendWindow(date: Date): boolean {
-  const { startHour, startMinute, endHour, endMinute } =
+  const { startHour, startMinute, endHour, endMinute, timezone } =
     COMPLIANCE.sendWindow;
-  const { hour, minute } = getEasternTime(date);
+  const { hour, minute } = getTimeInZone(date, timezone);
 
   const timeInMinutes = hour * 60 + minute;
   const startInMinutes = startHour * 60 + startMinute;
@@ -66,16 +96,14 @@ export function isWithinSendWindow(date: Date): boolean {
 
 /**
  * Adjust a scheduled date to the next valid send window if it falls outside.
- * If before the window, pushes to window start same day.
- * If after the window, pushes to window start next day.
- * Returns the original date if already within the window.
+ * Uses static COMPLIANCE constant (sync) — for backward compat.
  */
 export function adjustToSendWindow(date: Date): Date {
   if (isWithinSendWindow(date)) return date;
 
-  const { startHour, startMinute, endHour, endMinute } =
+  const { startHour, startMinute, endHour, endMinute, timezone } =
     COMPLIANCE.sendWindow;
-  const { hour, minute } = getEasternTime(date);
+  const { hour, minute } = getTimeInZone(date, timezone);
 
   const timeInMinutes = hour * 60 + minute;
   const endInMinutes = endHour * 60 + endMinute;
@@ -94,6 +122,35 @@ export function adjustToSendWindow(date: Date): Date {
   }
 
   // Zero out seconds/ms
+  adjusted.setSeconds(0, 0);
+  return adjusted;
+}
+
+/**
+ * Async version that reads send window from DB.
+ */
+export async function adjustToSendWindowAsync(date: Date): Promise<Date> {
+  const sw = await getSendWindow();
+  const { hour, minute } = getTimeInZone(date, sw.timezone);
+
+  const timeInMinutes = hour * 60 + minute;
+  const startInMinutes = sw.startHour * 60 + sw.startMinute;
+  const endInMinutes = sw.endHour * 60 + sw.endMinute;
+
+  if (timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes) {
+    return date;
+  }
+
+  const adjusted = new Date(date);
+
+  if (timeInMinutes > endInMinutes) {
+    const diffMinutes = (24 * 60 - timeInMinutes) + startInMinutes;
+    adjusted.setTime(adjusted.getTime() + diffMinutes * 60_000);
+  } else {
+    const diffMinutes = startInMinutes - timeInMinutes;
+    adjusted.setTime(adjusted.getTime() + diffMinutes * 60_000);
+  }
+
   adjusted.setSeconds(0, 0);
   return adjusted;
 }

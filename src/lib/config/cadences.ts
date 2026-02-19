@@ -1,4 +1,5 @@
 import type { Channel, Segment } from "@/generated/prisma/client";
+import { getSetting } from "@/lib/config/settings";
 
 export interface CadenceStep {
   day: number;
@@ -76,3 +77,26 @@ export const NURTURE_CADENCE: CadenceStep[] = [
   { day: 180, channel: "email", hour: 9, templateType: "nurture_reconnect" },
   { day: 360, channel: "email", hour: 9, templateType: "nurture_annual" },
 ];
+
+// ─── Dynamic getters (read from DB, fallback to hardcoded) ─
+
+/**
+ * Get cadence for a segment from DB, falling back to hardcoded constants.
+ */
+export async function getCadence(segment: Segment): Promise<CadenceStep[]> {
+  return getSetting(`cadence.${segment}`, CADENCES[segment] ?? CADENCES.COLD);
+}
+
+/**
+ * Get SUPER_HOT cadence from DB.
+ */
+export async function getSuperHotCadence(): Promise<CadenceStep[]> {
+  return getSetting("cadence.SUPER_HOT", SUPER_HOT_CADENCE);
+}
+
+/**
+ * Get NURTURE cadence from DB.
+ */
+export async function getNurtureCadence(): Promise<CadenceStep[]> {
+  return getSetting("cadence.NURTURE", NURTURE_CADENCE);
+}

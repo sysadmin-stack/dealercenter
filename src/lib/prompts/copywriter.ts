@@ -1,4 +1,5 @@
 import type { Channel, Language, Segment } from "@/generated/prisma/client";
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
 
 const LANGUAGE_NAMES: Record<Language, string> = {
   EN: "English",
@@ -14,24 +15,24 @@ const SEGMENT_CONTEXT: Record<Segment | "NURTURE", string> = {
   NURTURE: "This lead completed their initial cadence without responding. This is a long-term nurture touch. Be very low-pressure, informational, and never pushy. Keep the door open.",
 };
 
-const CHANNEL_RULES: Record<Channel, string> = {
-  whatsapp: `
+const CHANNEL_RULES_TEMPLATE: Record<Channel, (salesRep: string, dealerName: string) => string> = {
+  whatsapp: (salesRep, dealerName) => `
 - Keep it conversational and friendly, like texting a friend
 - Max 300 characters
 - No formal greetings like "Dear" — use "Hi" or "Hey"
 - One clear question or call-to-action
 - Do NOT use emojis excessively (max 1)
 - Do NOT include any links
-- Sign off with "- Antonio, Florida Auto Center" only if it's the first message`,
-  email: `
+- Sign off with "- ${salesRep}, ${dealerName}" only if it's the first message`,
+  email: (salesRep, dealerName) => `
 - Professional but warm tone
 - Subject line: max 60 characters, compelling, personalized
 - Body: 3-5 short paragraphs
 - Include a clear call-to-action
-- Sign off as "Antonio Sanches, Florida Auto Center"
+- Sign off as "${salesRep}, ${dealerName}"
 - Return JSON with "subject", "text", and "html" fields
 - The HTML should be simple inline-styled HTML (no external CSS)`,
-  sms: `
+  sms: () => `
 - Max 160 characters (single SMS segment)
 - Very concise and direct
 - Always end with "Reply STOP to opt out" (EN) / "Responda PARAR para cancelar" (PT/ES)
@@ -113,13 +114,18 @@ interface CopywriterPromptInput {
 
 /**
  * Build the system prompt for the copywriter.
+ * Now reads dealer identity from DB settings.
  */
-export function buildSystemPrompt(input: CopywriterPromptInput): string {
-  const lang = LANGUAGE_NAMES[input.language];
-  const channelRules = CHANNEL_RULES[input.channel];
-  const segmentCtx = SEGMENT_CONTEXT[input.segment] ?? SEGMENT_CONTEXT.COLD;
+export async function buildSystemPrompt(input: CopywriterPromptInput): Promise<string> {
+  const identity = await getSetting("dealer.identity", DEFAULTS["dealer.identity"]);
 
-  return `You are a copywriter for Florida Auto Center, a used car dealership in Orlando, FL.
+  const lang = LANGUAGE_NAMES[input.language];
+  const channelRulesFn = CHANNEL_RULES_TEMPLATE[input.channel];
+  const channelRules = channelRulesFn(identity.salesRep, identity.name);
+  const segmentCtx = SEGMENT_CONTEXT[input.segment] ?? SEGMENT_CONTEXT.COLD;
+  const valuePropsStr = identity.valueProps.join(", ");
+
+  return `You are a copywriter for ${identity.name}, a used car dealership in ${identity.location}.
 
 Your job is to write a single ${input.channel} message for a lead.
 
@@ -129,10 +135,10 @@ IMPORTANT RULES:
 ${channelRules}
 
 DEALERSHIP INFO:
-- Name: Florida Auto Center
-- Location: Orlando, FL
-- Specialty: Quality used vehicles, flexible financing, no-pressure experience
-- Salesperson: Antonio Sanches
+- Name: ${identity.name}
+- Location: ${identity.location}
+- Specialty: ${valuePropsStr}
+- Salesperson: ${identity.salesRep}
 
 COMPLIANCE:
 - Never make promises about specific prices or financing terms
@@ -164,12 +170,14 @@ export function buildUserPrompt(input: CopywriterPromptInput): string {
 }
 
 /**
- * System prompt for the conversational AI agent (Plan 008).
+ * System prompt for the conversational AI agent.
+ * Now reads dealer identity from DB settings.
  */
-export function buildConversationSystemPrompt(language: Language): string {
+export async function buildConversationSystemPrompt(language: Language): Promise<string> {
+  const identity = await getSetting("dealer.identity", DEFAULTS["dealer.identity"]);
   const lang = LANGUAGE_NAMES[language];
 
-  return `You are a helpful sales assistant for Florida Auto Center, a used car dealership in Orlando, FL.
+  return `You are a helpful sales assistant for ${identity.name}, a used car dealership in ${identity.location}.
 
 You are chatting with a customer who has responded to a marketing message.
 
@@ -179,7 +187,7 @@ RULES:
 - Answer questions about inventory, financing, and the buying process
 - If asked about specific prices, say you'll check and get back to them
 - Try to schedule an appointment or test drive
-- If the customer seems frustrated or wants to talk to a human, say you'll connect them with Antonio
+- If the customer seems frustrated or wants to talk to a human, say you'll connect them with ${identity.salesRep}
 - Never make up vehicle details — say you'll check availability
 - Keep responses concise (2-3 sentences max)
 

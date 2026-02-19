@@ -293,3 +293,12 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+model DealerSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("dealer_settings")
+}

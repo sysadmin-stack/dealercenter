@@ -1,4 +1,5 @@
 import type { Channel, Language, Segment } from "@/generated/prisma/client";
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
 
 interface FallbackTemplate {
   subject?: string;
@@ -449,19 +450,28 @@ const defaultFallback: Record<Language, Record<Channel, FallbackTemplate>> = {
 
 /**
  * Get a fallback template, replacing {{name}} with the lead's first name.
+ * Also dynamically replaces hardcoded dealer/salesRep names with DB values.
  */
-export function getFallbackTemplate(
+export async function getFallbackTemplate(
   name: string,
   channel: Channel,
   language: Language,
   templateType: string,
-): FallbackTemplate {
+): Promise<FallbackTemplate> {
   const key = `${channel}:${templateType}` as TemplateKey;
   const langTemplates = templates[language] ?? templates.EN;
   const template =
     langTemplates[key] ?? defaultFallback[language]?.[channel] ?? defaultFallback.EN[channel];
 
-  const replace = (s: string) => s.replace(/\{\{name\}\}/g, name);
+  const identity = await getSetting("dealer.identity", DEFAULTS["dealer.identity"]);
+  const salesRepFirst = identity.salesRep.split(" ")[0];
+
+  const replace = (s: string) =>
+    s
+      .replace(/\{\{name\}\}/g, name)
+      .replace(/Antonio Sanches/g, identity.salesRep)
+      .replace(/\bAntonio\b/g, salesRepFirst)
+      .replace(/Florida Auto Center/g, identity.name);
 
   return {
     subject: template.subject ? replace(template.subject) : undefined,

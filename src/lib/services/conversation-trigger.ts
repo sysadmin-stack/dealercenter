@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { Channel } from "@/generated/prisma/client";
+import { cancelPendingTouchesForLead } from "./touch-scheduler";
 
 interface IncomingMessage {
   leadPhone: string;
@@ -101,6 +102,16 @@ export async function handleIncomingMessage(
         payload: { conversationId: conversation.id },
       },
     });
+  }
+
+  // 4. Cancel ALL pending touches for this lead (all campaigns, all channels).
+  //    When a lead responds, the cadence should stop — continuing to send
+  //    automated messages while a conversation is active feels spammy.
+  const cancelled = await cancelPendingTouchesForLead(lead.id);
+  if (cancelled > 0) {
+    console.log(
+      `[ConvoTrigger] Cancelled ${cancelled} pending touches for ${lead.name} (lead responded)`,
+    );
   }
 
   return conversation.id;

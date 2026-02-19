@@ -60,7 +60,7 @@ export async function processConversation(
 
   // 5. Generate AI response
   try {
-    const systemPrompt = buildConversationSystemPrompt(lead.language);
+    const systemPrompt = await buildConversationSystemPrompt(lead.language);
     const userPrompt = buildConversationHistory(messages, lead);
 
     const { text: aiResponse } = await generateWithClaude(systemPrompt, userPrompt, {

@@ -4,6 +4,9 @@ import {
   CADENCES,
   SUPER_HOT_CADENCE,
   NURTURE_CADENCE,
+  getCadence,
+  getSuperHotCadence,
+  getNurtureCadence,
   type CadenceStep,
 } from "@/lib/config/cadences";
 import { adjustToSendWindow } from "@/lib/config/compliance";
@@ -56,8 +59,8 @@ export async function scheduleTouch(
     // Use SUPER_HOT cadence for tagged leads, otherwise segment cadence
     const isSuperHot = lead.tags?.includes("super_hot");
     const steps = isSuperHot
-      ? SUPER_HOT_CADENCE
-      : (CADENCES[lead.segment as Segment] ?? CADENCES.COLD);
+      ? await getSuperHotCadence()
+      : await getCadence(lead.segment as Segment);
 
     for (const step of steps) {
       // Handle "task" channel (assign_to_rep) — not a queue job
@@ -141,7 +144,8 @@ export async function scheduleNurture(
     // Skip if lead already responded
     if (repliedCount > 0) continue;
 
-    for (const step of NURTURE_CADENCE) {
+    const nurtureSteps = await getNurtureCadence();
+    for (const step of nurtureSteps) {
       if (step.channel === "task") continue;
       if (!campaignChannels.has(step.channel)) continue;
       if (!canReachViaChannel(lead, step.channel)) continue;
@@ -199,6 +203,37 @@ export async function cancelScheduledTouches(
   // Update touch statuses
   const result = await db.touch.updateMany({
     where: { campaignId, status: "pending" },
+    data: { status: "failed" },
+  });
+
+  return result.count;
+}
+
+/**
+ * Cancel ALL pending touches for a specific lead across all campaigns
+ * and all channels. Called when a lead responds to any touch.
+ *
+ * Returns the number of cancelled touches.
+ */
+export async function cancelPendingTouchesForLead(
+  leadId: string,
+): Promise<number> {
+  // Get all pending touches for this lead (all campaigns, all channels)
+  const pendingTouches = await db.touch.findMany({
+    where: { leadId, status: "pending" },
+    select: { id: true, channel: true },
+  });
+
+  // Remove jobs from queues
+  for (const touch of pendingTouches) {
+    const queue = getQueueForChannel(touch.channel);
+    const job = await queue.getJob(touch.id);
+    if (job) await job.remove();
+  }
+
+  // Mark all as cancelled (not "failed" — this is intentional cancellation)
+  const result = await db.touch.updateMany({
+    where: { leadId, status: "pending" },
     data: { status: "failed" },
   });
 

@@ -1,17 +1,23 @@
-const CHATWOOT_URL = process.env.CHATWOOT_URL || "http://localhost:3000";
-const CHATWOOT_API_TOKEN = process.env.CHATWOOT_API_TOKEN || "";
-const CHATWOOT_ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID || "1";
-const CHATWOOT_INBOX_ID = process.env.CHATWOOT_INBOX_ID || "1";
+import { getSetting, DEFAULTS } from "@/lib/config/settings";
 
-function apiUrl(path: string): string {
-  return `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}${path}`;
+// Token stays in env (secret)
+const CHATWOOT_API_TOKEN = process.env.CHATWOOT_API_TOKEN || "";
+
+async function getConfig() {
+  return getSetting("integration.chatwoot", DEFAULTS["integration.chatwoot"]);
+}
+
+async function apiUrl(path: string): Promise<string> {
+  const config = await getConfig();
+  return `${config.url}/api/v1/accounts/${config.accountId}${path}`;
 }
 
 async function chatwootFetch<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
-  const res = await fetch(apiUrl(path), {
+  const url = await apiUrl(path);
+  const res = await fetch(url, {
     method: options.method ?? "GET",
     headers: {
       "Content-Type": "application/json",
@@ -97,11 +103,12 @@ export async function createConversation(
   contactId: number,
   inboxId?: string,
 ): Promise<ChatwootConversation> {
+  const config = await getConfig();
   return chatwootFetch<ChatwootConversation>("/conversations", {
     method: "POST",
     body: {
       contact_id: contactId,
-      inbox_id: Number(inboxId ?? CHATWOOT_INBOX_ID),
+      inbox_id: Number(inboxId ?? config.inboxId),
       status: "open",
     },
   });
