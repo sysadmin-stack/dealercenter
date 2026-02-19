@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -389,7 +390,12 @@ export default function LeadsPage() {
                   return (
                     <TableRow key={lead.id} className="table-row-hover border-slate-100">
                       <TableCell className="font-medium text-[#1a2332]">
-                        {lead.name}
+                        <Link
+                          href={`/dashboard/leads/${lead.id}`}
+                          className="hover:text-[#5b8def] hover:underline"
+                        >
+                          {lead.name}
+                        </Link>
                         {lead.optedOut && (
                           <Badge variant="destructive" className="ml-2 text-[10px]">
                             Opted Out

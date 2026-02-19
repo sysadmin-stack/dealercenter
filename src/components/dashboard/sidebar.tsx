@@ -8,6 +8,7 @@ import {
   Users,
   Megaphone,
   BarChart3,
+  LineChart,
   LogOut,
   Car,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { signOut } from "next-auth/react";
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/leads", label: "Leads", icon: Users },
+  { href: "/dashboard/intelligence", label: "Intelligence", icon: LineChart },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
 ];
