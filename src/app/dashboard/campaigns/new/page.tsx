@@ -75,11 +75,17 @@ export default function NewCampaignPage() {
           channels,
         }),
       });
+      if (!createRes.ok) throw new Error("Failed to create draft");
       const campaign = await createRes.json();
 
       const previewRes = await fetch(`/api/campaigns/${campaign.id}/preview`);
+      if (!previewRes.ok) throw new Error("Failed to fetch preview");
       const data = await previewRes.json();
-      setPreview(data);
+      if (data && typeof data.eligible === "number") {
+        setPreview(data);
+      } else {
+        setError("Preview returned unexpected data");
+      }
 
       if (!name) {
         await fetch(`/api/campaigns/${campaign.id}`, { method: "DELETE" });
@@ -248,7 +254,7 @@ export default function NewCampaignPage() {
               className="text-3xl font-bold text-[#1a2332]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {preview.eligible.toLocaleString()}
+              {(preview.eligible ?? 0).toLocaleString()}
             </p>
             <p className="text-sm text-slate-500">eligible leads</p>
             <div className="mt-3 flex flex-wrap gap-2">
