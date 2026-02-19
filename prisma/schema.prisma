@@ -139,6 +139,17 @@ model Lead {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  // Deal fields (from sold deals CSV import)
+  dealStockNumber String?
+  dealVin         String?
+  dealVehicle     String?
+  dealType        String?
+  dealDmsId       String?
+  dealDate        DateTime?
+  dealLender      String?
+  dealPrice       Int?
+  dealMatchType   String?
+
   touches       Touch[]
   conversations Conversation[]
   dncEntries    DncList[]
@@ -148,6 +159,7 @@ model Lead {
   @@index([status])
   @@index([creditApp])
   @@index([importedYear])
+  @@index([dealVin])
   @@map("leads")
 }
 

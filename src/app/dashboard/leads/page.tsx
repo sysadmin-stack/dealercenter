@@ -39,6 +39,7 @@ import {
   Download,
   Snowflake,
   Users,
+  FileSpreadsheet,
 } from "lucide-react";
 
 interface Lead {
@@ -54,6 +55,20 @@ interface Lead {
   optedOut: boolean;
   tags: string[];
   createdAt: string;
+  dealVehicle: string | null;
+  dealDate: string | null;
+  dealPrice: number | null;
+}
+
+interface DealsImportResult {
+  total: number;
+  matched: number;
+  matchedExact: number;
+  matchedFuzzy: number;
+  unmatched: number;
+  unmatchedNames: string[];
+  skippedOlder: number;
+  errors: string[];
 }
 
 interface LeadsResponse {
@@ -87,6 +102,10 @@ export default function LeadsPage() {
   const [dragOver, setDragOver] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [frozenCount, setFrozenCount] = useState<number | null>(null);
+
+  const [dealsUploading, setDealsUploading] = useState(false);
+  const [dealsResult, setDealsResult] = useState<DealsImportResult | null>(null);
+  const dealsFileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchLeads = useCallback(
     async (page = 1) => {
@@ -164,6 +183,30 @@ export default function LeadsPage() {
     setUploading(false);
   }
 
+  async function handleDealsUpload(file: File) {
+    setDealsUploading(true);
+    setDealsResult(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/deals/import", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (res.ok) {
+        setDealsResult(data);
+        fetchLeads(1);
+      } else {
+        setDealsResult(null);
+        setUploadResult({ success: false, message: data.error || "Deals import failed" });
+      }
+    } catch {
+      setUploadResult({ success: false, message: "Network error" });
+    }
+    setDealsUploading(false);
+  }
+
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
@@ -195,18 +238,44 @@ export default function LeadsPage() {
             {pagination.total.toLocaleString()} total leads
           </p>
         </div>
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="bg-[#1b2a4a] text-white hover:bg-[#243656]"
-        >
-          {uploading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Upload className="size-4" />
-          )}
-          Import XLSX
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => dealsFileInputRef.current?.click()}
+            disabled={dealsUploading}
+            variant="outline"
+            className="border-slate-200"
+          >
+            {dealsUploading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="size-4" />
+            )}
+            Import Deals
+          </Button>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="bg-[#1b2a4a] text-white hover:bg-[#243656]"
+          >
+            {uploading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            Import XLSX
+          </Button>
+        </div>
+        <input
+          ref={dealsFileInputRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleDealsUpload(file);
+            e.target.value = "";
+          }}
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -256,6 +325,27 @@ export default function LeadsPage() {
               <AlertCircle className="size-4" />
             )}
             {uploadResult.message}
+          </div>
+        )}
+        {dealsResult && (
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex items-center justify-center gap-2 font-medium text-emerald-600">
+              <CheckCircle2 className="size-4" />
+              {dealsResult.matched} matched ({dealsResult.matchedExact} exact, {dealsResult.matchedFuzzy} fuzzy), {dealsResult.unmatched} unmatched
+              {dealsResult.skippedOlder > 0 && `, ${dealsResult.skippedOlder} skipped (older)`}
+            </div>
+            {dealsResult.unmatchedNames.length > 0 && (
+              <details className="text-center text-slate-500">
+                <summary className="cursor-pointer hover:text-slate-700">
+                  {dealsResult.unmatchedNames.length} unmatched names
+                </summary>
+                <div className="mt-1 max-h-32 overflow-y-auto text-xs">
+                  {dealsResult.unmatchedNames.map((name) => (
+                    <div key={name}>{name}</div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -369,18 +459,21 @@ export default function LeadsPage() {
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Tags
                 </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Vehicle / Deal
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-slate-400">
+                  <TableCell colSpan={8} className="h-32 text-center text-slate-400">
                     <Loader2 className="mx-auto size-5 animate-spin" />
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-slate-400">
+                  <TableCell colSpan={8} className="h-32 text-center text-slate-400">
                     No leads found
                   </TableCell>
                 </TableRow>
@@ -450,6 +543,27 @@ export default function LeadsPage() {
                             </Badge>
                           ))}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {lead.dealVehicle ? (
+                          <div className="space-y-0.5">
+                            <div className="max-w-[180px] truncate text-xs font-medium text-[#1a2332]">
+                              {lead.dealVehicle}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                              {lead.dealDate && (
+                                <span>{new Date(lead.dealDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                              )}
+                              {lead.dealPrice && (
+                                <span className="font-semibold tabular-nums text-emerald-600" style={{ fontFamily: "var(--font-mono)" }}>
+                                  ${lead.dealPrice.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
