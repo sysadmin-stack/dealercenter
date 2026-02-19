@@ -7,7 +7,11 @@ import type {
   Prisma,
   Segment,
 } from "@/generated/prisma/client";
-import { scheduleTouch, cancelScheduledTouches } from "./touch-scheduler";
+import {
+  scheduleTouch,
+  scheduleNurture,
+  cancelScheduledTouches,
+} from "./touch-scheduler";
 
 // ─── Get eligible leads for a campaign ──────────────────
 
@@ -131,6 +135,39 @@ export async function resumeCampaign(campaignId: string) {
   }
 
   return activateCampaign(campaignId);
+}
+
+// ─── Complete with Nurture ──────────────────────────────
+
+export async function completeCampaignWithNurture(campaignId: string) {
+  const campaign = await db.campaign.findUnique({
+    where: { id: campaignId },
+  });
+  if (!campaign) throw new Error("Campaign not found");
+
+  // Get all leads that were part of this campaign
+  const leadIds = await db.touch.findMany({
+    where: { campaignId },
+    select: { leadId: true },
+    distinct: ["leadId"],
+  });
+
+  const leads = await db.lead.findMany({
+    where: {
+      id: { in: leadIds.map((t) => t.leadId) },
+      optedOut: false,
+    },
+  });
+
+  // Schedule nurture for non-responsive leads
+  const nurtureCount = await scheduleNurture(campaign, leads);
+
+  const updated = await db.campaign.update({
+    where: { id: campaignId },
+    data: { status: "completed", endDate: new Date() },
+  });
+
+  return { campaign: updated, nurtureScheduled: nurtureCount };
 }
 
 // ─── Cancel ─────────────────────────────────────────────

@@ -1,6 +1,12 @@
 import { db } from "@/lib/db";
 import { whatsappQueue, emailQueue, smsQueue } from "@/lib/queue";
-import { CADENCES, SUPER_HOT_CADENCE, type CadenceStep } from "@/lib/config/cadences";
+import {
+  CADENCES,
+  SUPER_HOT_CADENCE,
+  NURTURE_CADENCE,
+  type CadenceStep,
+} from "@/lib/config/cadences";
+import { adjustToSendWindow } from "@/lib/config/compliance";
 import { assignToRep } from "@/lib/services/assign-to-rep";
 import type { Campaign, Lead, Channel, Segment } from "@/generated/prisma/client";
 
@@ -22,7 +28,8 @@ function computeScheduledAt(
   const scheduled = new Date(campaignStart);
   scheduled.setDate(scheduled.getDate() + step.day);
   scheduled.setHours(step.hour, 0, 0, 0);
-  return scheduled;
+  // Adjust to Florida compliance send window (8:15 AM - 7:45 PM ET)
+  return adjustToSendWindow(scheduled);
 }
 
 function canReachViaChannel(lead: Lead, channel: Channel): boolean {
@@ -107,6 +114,70 @@ export async function scheduleTouch(
   }
 
   return touchCount;
+}
+
+/**
+ * Schedule NURTURE cadence for leads that completed their initial cadence
+ * without any response (no "replied" touches).
+ */
+export async function scheduleNurture(
+  campaign: Campaign,
+  leads: Lead[],
+): Promise<number> {
+  let nurtureCount = 0;
+  const nurtureStart = new Date();
+  const campaignChannels = new Set(campaign.channels);
+
+  for (const lead of leads) {
+    // Check if lead has any replied touches in this campaign
+    const repliedCount = await db.touch.count({
+      where: {
+        leadId: lead.id,
+        campaignId: campaign.id,
+        status: "replied",
+      },
+    });
+
+    // Skip if lead already responded
+    if (repliedCount > 0) continue;
+
+    for (const step of NURTURE_CADENCE) {
+      if (step.channel === "task") continue;
+      if (!campaignChannels.has(step.channel)) continue;
+      if (!canReachViaChannel(lead, step.channel)) continue;
+
+      const scheduledAt = computeScheduledAt(nurtureStart, step);
+
+      const touch = await db.touch.create({
+        data: {
+          leadId: lead.id,
+          campaignId: campaign.id,
+          channel: step.channel,
+          status: "pending",
+          scheduledAt,
+        },
+      });
+
+      const delay = Math.max(0, scheduledAt.getTime() - Date.now());
+      const queue = getQueueForChannel(step.channel);
+      await queue.add(
+        `touch-${touch.id}`,
+        {
+          touchId: touch.id,
+          leadId: lead.id,
+          campaignId: campaign.id,
+          channel: step.channel,
+          templateType: step.templateType,
+          scheduledAt: scheduledAt.toISOString(),
+        },
+        { delay, jobId: touch.id },
+      );
+
+      nurtureCount++;
+    }
+  }
+
+  return nurtureCount;
 }
 
 export async function cancelScheduledTouches(
